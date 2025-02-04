@@ -59,7 +59,7 @@ class Match(Submission):
     opponent_id = Column(
         Integer,
         ForeignKey(Submission.id, onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     opponent = relationship(

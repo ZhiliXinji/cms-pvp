@@ -48,11 +48,11 @@ class Submission(Base):
 
     __mapper_args__ = {
         "polymorphic_identity": "submission",
-        "polymorphic_on": "type",
+        "polymorphic_on": "submission_type",
     }
 
     # type to distinguish between normal submissions and matches
-    type = Column(String(50))
+    submission_type = Column(String(50))
 
     # Auto increment primary key.
     id = Column(
