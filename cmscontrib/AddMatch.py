@@ -27,7 +27,7 @@ from cms.db import (
     File,
     Participation,
     SessionGen,
-    Match,
+    Submission,
     Task,
     User,
     ask_for_contest,
@@ -78,12 +78,6 @@ def language_from_submitted_files(files):
 def add_match(contest_id, username, task_name, timestamp, files, opponentname):
     file_cacher = FileCacher()
     with SessionGen() as session:
-        # for PvP
-        opponent = session.query(User).filter(User.username == opponentname).first()
-        if opponent is None:
-            logging.critical("User `%s' does not exists.", opponentname)
-            return False
-
         participation = (
             session.query(Participation)
             .join(Participation.user)
@@ -105,6 +99,28 @@ def add_match(contest_id, username, task_name, timestamp, files, opponentname):
         )
         if task is None:
             logging.critical("Unable to find task `%s'.", task_name)
+            return False
+
+        # for PvP
+        opponent_user = (
+            session.query(User).filter(User.username == opponentname).first()
+        )
+        if opponent_user is None:
+            logging.critical("User `%s' does not exists.", opponentname)
+            return False
+
+        opponent_submission = (
+            session.query(Submission)
+            .join(Submission.participation)
+            .join(Participation.user)
+            .join(Submission.task)
+            .filter(User.username == opponentname)
+            .filter(Task.id == task.id)
+            .order_by(Submission.timestamp.desc())
+            .first()
+        )
+        if opponent_submission is None:
+            logging.critical("No submissions found for opponent `%s'.", opponentname)
             return False
 
         elements = set(task.submission_format)
@@ -150,13 +166,13 @@ def add_match(contest_id, username, task_name, timestamp, files, opponentname):
             return False
 
         # Create objects in the DB.
-        match = Match(
+        match = Submission(
             "match",
             make_datetime(timestamp),
             language_name,
             participation=participation,
             task=task,
-            # TODO : opponent=
+            opponent=opponent_submission,
         )
         for filename, digest in file_digests.items():
             session.add(File(filename, digest, submission=match))
