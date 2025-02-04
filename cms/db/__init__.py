@@ -42,29 +42,56 @@ logger = logging.getLogger(__name__)
 # Define what this package will provide.
 
 __all__ = [
-    "version", "engine",
+    "version",
+    "engine",
     # session
-    "Session", "ScopedSession", "SessionGen", "custom_psycopg2_connection",
+    "Session",
+    "ScopedSession",
+    "SessionGen",
+    "custom_psycopg2_connection",
     # types
-    "CastingArray", "Codename", "Filename", "FilenameSchema",
-    "FilenameSchemaArray", "Digest",
+    "CastingArray",
+    "Codename",
+    "Filename",
+    "FilenameSchema",
+    "FilenameSchemaArray",
+    "Digest",
     # base
-    "metadata", "Base",
+    "metadata",
+    "Base",
     # fsobject
-    "FSObject", "LargeObject",
+    "FSObject",
+    "LargeObject",
     # contest
-    "Contest", "Announcement",
+    "Contest",
+    "Announcement",
     # user
-    "User", "Team", "Participation", "Message", "Question",
+    "User",
+    "Team",
+    "Participation",
+    "Message",
+    "Question",
     # admin
     "Admin",
     # task
-    "Task", "Statement", "Attachment", "Dataset", "Manager", "Testcase",
+    "Task",
+    "Statement",
+    "Attachment",
+    "Dataset",
+    "Manager",
+    "Testcase",
     # submission
-    "Submission", "File", "Token", "SubmissionResult", "Executable",
+    "Submission",
+    "File",
+    "Token",
+    "SubmissionResult",
+    "Executable",
     "Evaluation",
     # usertest
-    "UserTest", "UserTestFile", "UserTestManager", "UserTestResult",
+    "UserTest",
+    "UserTestFile",
+    "UserTestManager",
+    "UserTestResult",
     "UserTestExecutable",
     # printjob
     "PrintJob",
@@ -73,9 +100,16 @@ __all__ = [
     # drop
     "drop_db",
     # util
-    "test_db_connection", "get_contest_list", "is_contest_id",
-    "ask_for_contest", "get_submissions", "get_submission_results",
-    "get_datasets_to_judge", "enumerate_files"
+    "test_db_connection",
+    "get_contest_list",
+    "is_contest_id",
+    "ask_for_contest",
+    "get_submissions",
+    "get_submission_results",
+    "get_datasets_to_judge",
+    "enumerate_files",
+    # match
+    "Match",
 ]
 
 
@@ -104,6 +138,7 @@ from .submission import Submission, File, Token, SubmissionResult, \
 from .usertest import UserTest, UserTestFile, UserTestManager, \
     UserTestResult, UserTestExecutable
 from .printjob import PrintJob
+from .match import Match
 
 from .init import init_db
 from .drop import drop_db
