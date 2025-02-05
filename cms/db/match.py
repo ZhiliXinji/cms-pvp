@@ -26,10 +26,12 @@
 
 from sqlalchemy import Boolean
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Session
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.schema import Column, ForeignKey, ForeignKeyConstraint, UniqueConstraint
 from sqlalchemy.types import Integer, Float, String, Unicode, DateTime, Enum, BigInteger
+from sqlalchemy.event import listens_for
+from sqlalchemy.sql import insert
 
 from cmscommon.datetime import make_datetime
 from . import (
@@ -42,6 +44,7 @@ from . import (
     Submission,
     Dataset,
     Testcase,
+    SessionGen,
 )
 
 
@@ -132,3 +135,69 @@ class MatchResult(Base):
             return MatchResult.SCORING
         else:
             return MatchResult.SCORED
+
+class TaskFinalScore(Base):
+    """Class to store the final score of a task."""
+
+    """Only for PvP tasks."""
+
+    __tablename__ = "task_final_scores"
+
+    # Auto increment primary key.
+    id = Column(Integer, primary_key=True)
+
+    task_id = Column(
+        Integer,
+        ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    task = relationship(
+        Task,
+        foreign_keys=[task_id],
+        uselist=False,
+    )
+
+    participation_id = Column(
+        Integer,
+        ForeignKey(Participation.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    participation = relationship(
+        Participation,
+        foreign_keys=[participation_id],
+        uselist=False,
+    )
+
+    score = Column(Float, nullable=False, default=0.0)
+
+    # Unique constraint.
+    __table_args__ = (UniqueConstraint("task_id", "participation_id"),)
+
+
+@listens_for(Task, "after_insert")
+def create_task_final_scores(mapper, connection, target):
+    """Automatically create TaskFinalScore for all Tasks when a Task is inserted"""
+    # TODO: Check if this is a PvP task
+    participation_ids = connection.execute("SELECT id FROM participations").fetchall()
+
+    for (participation_id,) in participation_ids:
+        connection.execute(
+            insert(TaskFinalScore).values(
+                task_id=target.id, participation_id=participation_id
+            )
+        )
+
+
+@listens_for(Participation, "after_insert")
+def create_participation_final_scores(mapper, connection, target):
+    """Automatically create TaskFinalScore for all Tasks when a Participation is inserted"""
+    task_ids = connection.execute("SELECT id FROM tasks").fetchall()
+
+    for (task_id,) in task_ids:
+        # TODO: Check if this is a PvP task
+
+        connection.execute(
+            insert(TaskFinalScore).values(task_id=task_id, participation_id=target.id)
+        )
