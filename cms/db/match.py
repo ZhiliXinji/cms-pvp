@@ -80,6 +80,13 @@ class Match(Base):
         uselist=False,
     )
 
+    result = relationship(
+        "MatchResult",
+        back_populates="match",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
     batch = Column(Integer, nullable=True)
 
 class MatchResult(Base):
@@ -97,14 +104,10 @@ class MatchResult(Base):
     match_id = Column(
         Integer,
         ForeignKey(Match.id, onupdate="CASCADE", ondelete="CASCADE"),
+        unique=True,
         nullable=False,
-        index=True,
     )
-    match = relationship(
-        Match,
-        foreign_keys=[match_id],
-        uselist=False,
-    )
+    match = relationship("Match", back_populates="result", uselist=False)
 
     evaluation_outcome = Column(Enum("ok", name="evaluation_outcome"), nullable=True)
 
@@ -135,6 +138,12 @@ class MatchResult(Base):
             return MatchResult.SCORING
         else:
             return MatchResult.SCORED
+
+
+@listens_for(Match, "after_insert")
+def create_match_result(mapper, connection, target):
+    connection.execute(insert(MatchResult).values(match_id=target.id))
+
 
 class TaskFinalScore(Base):
     """Class to store the final score of a task."""
