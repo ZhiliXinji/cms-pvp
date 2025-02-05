@@ -23,7 +23,7 @@ import sys
 import time
 
 from cms import utf8_decoder
-from cms.db import SessionGen, Task, Submission, Participation
+from cms.db import SessionGen, Task, Submission, Participation, File
 from cmscommon.datetime import make_datetime
 
 
@@ -49,6 +49,16 @@ def add_match(session, task, p1, p2):
     if not s2:
         return False
 
+    print(s1.files)
+
+    files = {
+        f.filename: File(
+            filename=f.filename,
+            digest=f.digest,
+        )
+        for f in s1.files.values()
+    }
+
     match = Submission(
         "match",
         make_datetime(time.time()),
@@ -56,10 +66,11 @@ def add_match(session, task, p1, p2):
         participation=s1.participation,
         task=s1.task,
         opponent=s2,
+        files=files,
     )
+
     session.add(match)
     session.commit()
-    # TODO: 解决file和submission是多对一的问题
 
     return True
 
