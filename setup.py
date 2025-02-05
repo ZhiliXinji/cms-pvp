@@ -150,6 +150,7 @@ setup(
             "cmsAddSubmission=cmscontrib.AddSubmission:main",
             "cmsAddMatch=cmscontrib.AddMatch:main",
             "cmsStartMatch=cmscontrib.StartMatch:main",
+            "cmsUpdatePvPFinalScore=cmscontrib.UpdatePvPFinalScore:main",
             "cmsAddTeam=cmscontrib.AddTeam:main",
             "cmsAddTestcases=cmscontrib.AddTestcases:main",
             "cmsAddUser=cmscontrib.AddUser:main",

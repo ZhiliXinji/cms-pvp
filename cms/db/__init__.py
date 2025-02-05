@@ -111,6 +111,7 @@ __all__ = [
     # match
     "Match",
     "MatchResult",
+    "TaskFinalScore",
 ]
 
 
@@ -139,7 +140,7 @@ from .submission import Submission, File, Token, SubmissionResult, \
 from .usertest import UserTest, UserTestFile, UserTestManager, \
     UserTestResult, UserTestExecutable
 from .printjob import PrintJob
-from .match import Match, MatchResult
+from .match import Match, MatchResult, TaskFinalScore
 
 from .init import init_db
 from .drop import drop_db

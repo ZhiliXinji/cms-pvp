@@ -152,14 +152,12 @@ class TaskFinalScore(Base):
 
     __tablename__ = "task_final_scores"
 
-    # Auto increment primary key.
-    id = Column(Integer, primary_key=True)
-
     task_id = Column(
         Integer,
         ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
         nullable=False,
         index=True,
+        primary_key=True,
     )
     task = relationship(
         Task,
@@ -172,6 +170,7 @@ class TaskFinalScore(Base):
         ForeignKey(Participation.id, onupdate="CASCADE", ondelete="CASCADE"),
         nullable=False,
         index=True,
+        primary_key=True,
     )
     participation = relationship(
         Participation,
