@@ -428,7 +428,7 @@ class PvP(TaskType):
                     + human_evaluation_message(stats_user[0])[0]
                 ]
             else:
-                outcome = -1.0
+                outcome = 0.0
                 text = [
                     N_(
                         "All user programs failed to execute. The info of your program is:\n"
