@@ -79,8 +79,7 @@ class PvP(TaskType):
 
     ALLOW_PARTIAL_SUBMISSION = False
 
-    _NUM_PROCESSES = ParameterTypeInt("Number of Processes", "num_processes", "")
-
+    # TODO: check if COMPILATION_STUB could work properly.
     _COMPILATION = ParameterTypeChoice(
         "Compilation",
         "compilation",
@@ -102,7 +101,7 @@ class PvP(TaskType):
         },
     )
 
-    ACCEPTED_PARAMETERS = [_NUM_PROCESSES, _COMPILATION, _USER_IO]
+    ACCEPTED_PARAMETERS = [_COMPILATION, _USER_IO]
 
     @property
     def name(self):
@@ -112,9 +111,8 @@ class PvP(TaskType):
     def __init__(self, parameters):
         super().__init__(parameters)
 
-        self.num_processes = self.parameters[0]
-        self.compilation = self.parameters[1]
-        self.io = self.parameters[2]
+        self.compilation = self.parameters[0]
+        self.io = self.parameters[1]
 
     def get_compilation_commands(self, submission_format):
         """See TaskType.get_compilation_commands."""
@@ -166,6 +164,8 @@ class PvP(TaskType):
         name = "_".join(sorted(codename.replace(".%l", "") for codename in codenames))
         return name + language.executable_extension
 
+    # NOTE: In PvP, you have two users, so you may have to call this twice.
+    # You should guarantee that two executables have different filenames.
     def compile(self, job, file_cacher):
         """See TaskType.compile."""
         language = get_language(job.language)
@@ -233,20 +233,37 @@ class PvP(TaskType):
         # Cleanup.
         delete_sandbox(sandbox, job.success, job.keep_sandbox)
 
-    def evaluate(self, job, file_cacher):
-        """See TaskType.evaluate."""
-        if not check_executables_number(job, 1):
+    def evaluate(self, jobs, file_cacher):
+        """See TaskType.evaluate.
+        NOTE: This jobs should be a list of MatchJob in size 2.
+            Assume that jobs[0] is the job of current user, and jobs[1] is the job of the opponent.
+            Output will be stoarged in jobs[0], and info of jobs[0] will be presented to the current user.
+        """
+
+        # TODO: check if two jobs are compatible (same manager, same input, etc.)
+        if (
+            not len(jobs) == 2
+            or not check_executables_number(jobs[0], 1)
+            or not check_executables_number(jobs[1], 1)
+        ):
             return
-        executable_filename = next(iter(job.executables.keys()))
-        executable_digest = job.executables[executable_filename].digest
+
+        # Use jobs[0] as the main job.
+        job = jobs[0]
+
+        # PvP means 2 users.
+        indices = range(2)
+
+        executable_filenames = [jobs[i].executables.keys() for i in indices]
+        executable_digests = [
+            jobs[i].executables[executable_filenames[i]].digest
+            for i in executable_filenames
+        ]
 
         # Make sure the required manager is among the job managers.
         if not check_manager_present(job, self.MANAGER_FILENAME):
             return
         manager_digest = job.managers[self.MANAGER_FILENAME].digest
-
-        # Indices for the objects related to each user process.
-        indices = range(self.num_processes)
 
         # Create FIFOs.
         fifo_dir = [tempfile.mkdtemp(dir=config.temp_dir) for i in indices]
@@ -286,7 +303,7 @@ class PvP(TaskType):
         job.sandboxes.extend(s.get_root_path() for s in sandbox_user)
         for i in indices:
             sandbox_user[i].create_file_from_storage(
-                executable_filename, executable_digest, executable=True
+                executable_filenames[i], executable_digests[i], executable=True
             )
 
         # Start the manager. Redirecting to stdin is unnecessary, but for
@@ -313,7 +330,7 @@ class PvP(TaskType):
         #     constraint on the total time can only be enforced after all user
         #     programs terminated.
         manager_time_limit = max(
-            self.num_processes * (job.time_limit + 1.0),
+            2 * (job.time_limit + 1.0),
             config.trusted_sandbox_max_time_s,
         )
         manager = evaluation_step_before_run(
@@ -328,12 +345,15 @@ class PvP(TaskType):
         )
 
         # Start the user submissions compiled with the stub.
-        language = get_language(job.language)
-        main = (
-            self.STUB_BASENAME
-            if self._uses_stub()
-            else os.path.splitext(executable_filename)[0]
-        )
+        languages = [get_language(jobs[i].language) for i in indices]
+        main = [
+            (
+                self.STUB_BASENAME
+                if self._uses_stub()
+                else os.path.splitext(executable_filenames[i])[0]
+            )
+            for i in indices
+        ]
         processes = [None for i in indices]
         for i in indices:
             args = []
@@ -346,10 +366,8 @@ class PvP(TaskType):
             else:
                 stdin_redirect = sandbox_fifo_manager_to_user[i]
                 stdout_redirect = sandbox_fifo_user_to_manager[i]
-            if self.num_processes != 1:
-                args.append(str(i))
-            commands = language.get_evaluation_commands(
-                executable_filename, main=main, args=args
+            commands = languages[i].get_evaluation_commands(
+                executable_filenames[i], main=main[i], args=args
             )
             # Assumes that the actual execution of the user solution is the
             # last command in commands, and that the previous are "setup"
@@ -359,8 +377,8 @@ class PvP(TaskType):
             processes[i] = evaluation_step_before_run(
                 sandbox_user[i],
                 commands[-1],
-                job.time_limit,
-                job.memory_limit,
+                jobs[i].time_limit,
+                jobs[i].memory_limit,
                 dirs_map={fifo_dir[i]: (sandbox_fifo_dir[i], "rw")},
                 stdin_redirect=stdin_redirect,
                 stdout_redirect=stdout_redirect,
@@ -377,21 +395,11 @@ class PvP(TaskType):
 
         # Coalesce the results of the user sandboxes.
         user_results = [evaluation_step_after_run(s) for s in sandbox_user]
-        box_success_user = all(r[0] for r in user_results)
-        evaluation_success_user = all(r[1] for r in user_results)
-        stats_user = reduce(merge_execution_stats, [r[2] for r in user_results])
-        # The actual running time is the sum of every user process, but each
-        # sandbox can only check its own; if the sum is greater than the time
-        # limit we adjust the result.
-        if (
-            box_success_user
-            and evaluation_success_user
-            and stats_user["execution_time"] >= job.time_limit
-        ):
-            evaluation_success_user = False
-            stats_user["exit_status"] = Sandbox.EXIT_TIMEOUT
+        box_success_user = [r[0] for r in user_results]
+        evaluation_success_user = [r[1] for r in user_results]
+        stats_user = [r[2] for r in user_results]
 
-        success = box_success_user and box_success_mgr and evaluation_success_mgr
+        success = all(box_success_user) and box_success_mgr and evaluation_success_mgr
         outcome = None
         text = None
 
@@ -405,11 +413,28 @@ class PvP(TaskType):
             outcome = 0.0
             text = [N_("Execution completed successfully")]
 
-        # If the user sandbox detected some problem (timeout, ...),
+        # If any user sandbox detected some problem (timeout, ...),
         # the outcome is 0.0 and the text describes that problem.
-        elif not evaluation_success_user:
-            outcome = 0.0
-            text = human_evaluation_message(stats_user)
+        elif not all(evaluation_success_user):
+            if evaluation_success_user[0]:
+                outcome = 1.0
+                text = [N_("You win because the opponent's program failed to execute")]
+            elif evaluation_success_user[1]:
+                outcome = 0.0
+                text = [
+                    N_(
+                        "You lose because your program failed to execute. The info of your program is:\n"
+                    )
+                    + human_evaluation_message(stats_user[0])[0]
+                ]
+            else:
+                outcome = -1.0
+                text = [
+                    N_(
+                        "All user programs failed to execute. The info of your program is:\n"
+                    )
+                    + human_evaluation_message(stats_user[0])[0]
+                ]
 
         # Otherwise, we use the manager to obtain the outcome.
         else:
@@ -431,7 +456,7 @@ class PvP(TaskType):
         job.success = success
         job.outcome = "%s" % outcome if outcome is not None else None
         job.text = text
-        job.plus = stats_user
+        job.plus = None if stats_user is None else stats_user[0]
 
         delete_sandbox(sandbox_mgr, job.success, job.keep_sandbox)
         for s in sandbox_user:
