@@ -37,6 +37,8 @@ from cms.grading.languagemanager import filename_to_language
 from cms.io import RemoteServiceClient
 from cmscommon.datetime import make_datetime
 
+from .StartMatch import add_match
+
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +77,7 @@ def language_from_submitted_files(files):
     return language
 
 
-def add_match(contest_id, username, task_name, timestamp, files, opponentname):
-    file_cacher = FileCacher()
+def add_single_match(contest_id, username, task_name, timestamp, opponentname):
     with SessionGen() as session:
         participation = (
             session.query(Participation)
@@ -86,6 +87,19 @@ def add_match(contest_id, username, task_name, timestamp, files, opponentname):
             .first()
         )
         if participation is None:
+            logging.critical(
+                "User `%s' does not exists or does not participate in the contest.",
+                username,
+            )
+            return False
+        o_participation = (
+            session.query(Participation)
+            .join(Participation.user)
+            .filter(Participation.contest_id == contest_id)
+            .filter(User.username == opponentname)
+            .first()
+        )
+        if o_participation is None:
             logging.critical(
                 "User `%s' does not exists or does not participate in the contest.",
                 username,
@@ -101,84 +115,9 @@ def add_match(contest_id, username, task_name, timestamp, files, opponentname):
             logging.critical("Unable to find task `%s'.", task_name)
             return False
 
-        # for PvP
-        opponent_user = (
-            session.query(User).filter(User.username == opponentname).first()
-        )
-        if opponent_user is None:
-            logging.critical("User `%s' does not exists.", opponentname)
-            return False
-
-        opponent_submission = (
-            session.query(Submission)
-            .join(Submission.participation)
-            .join(Participation.user)
-            .join(Submission.task)
-            .filter(User.username == opponentname)
-            .filter(Task.id == task.id)
-            .order_by(Submission.timestamp.desc())
-            .first()
-        )
-        if opponent_submission is None:
-            logging.critical("No submissions found for opponent `%s'.", opponentname)
-            return False
-
-        elements = set(task.submission_format)
-
-        for file_ in files:
-            if file_ not in elements:
-                logging.critical(
-                    "File `%s' is not in the submission format for the task.", file_
-                )
-                return False
-
-        if any(element not in files for element in elements):
-            logger.warning("Not all files from the submission format were provided.")
-
-        # files is now a subset of elements.
-        # We ensure we can infer a language if the task requires it.
-        language = None
-        need_lang = any(element.find(".%l") != -1 for element in elements)
-        if need_lang:
-            try:
-                language = language_from_submitted_files(files)
-            except ValueError as e:
-                logger.critical(e)
-                return False
-            if language is None:
-                # This might happen in case not all files were provided.
-                logger.critical("Unable to infer language from submission.")
-                return False
-        language_name = None if language is None else language.name
-
-        # Store all files from the arguments, and obtain their digests..
-        file_digests = {}
-        try:
-            for file_ in files:
-                digest = file_cacher.put_file_from_path(
-                    files[file_],
-                    "Submission file %s sent by %s at %d."
-                    % (file_, username, timestamp),
-                )
-                file_digests[file_] = digest
-        except Exception as e:
-            logger.critical("Error while storing submission's file: %s.", e)
-            return False
 
         # Create objects in the DB.
-        match = Submission(
-            "match",
-            make_datetime(timestamp),
-            language_name,
-            participation=participation,
-            task=task,
-            opponent=opponent_submission,
-        )
-        for filename, digest in file_digests.items():
-            session.add(File(filename, digest, submission=match))
-        session.add(match)
-        session.commit()
-        maybe_send_notification(match.id)
+        add_match(session, task, participation, o_participation)
 
     return True
 
@@ -196,17 +135,6 @@ def main():
         action="store",
         type=int,
         help="id of contest where to add the match",
-    )
-    parser.add_argument(
-        "-f",
-        "--file",
-        action="append",
-        type=utf8_decoder,
-        help="in the form <name>:<file>, where name is the "
-        "name as required by CMS, and file is the name of "
-        "the file in the filesystem - may be specified "
-        "multiple times",
-        required=True,
     )
     parser.add_argument(
         "username", action="store", type=utf8_decoder, help="user doing the submission"
@@ -242,23 +170,11 @@ def main():
 
         args.timestamp = time.time()
 
-    split_files = [file_.split(":", 1) for file_ in args.file]
-    if any(len(file_) != 2 for file_ in split_files):
-        parser.error("Invalid value for the file argument: format is <name>:<file>.")
-        return 1
-    files = {}
-    for name, filename in split_files:
-        if name in files:
-            parser.error("Duplicate assignment for file `%s'." % name)
-            return 1
-        files[name] = filename
-
-    success = add_match(
+    success = add_single_match(
         contest_id=args.contest_id,
         username=args.username,
         task_name=args.task_name,
         timestamp=args.timestamp,
-        files=files,
         opponentname=args.opponentname,
     )
     return 0 if success is True else 1
