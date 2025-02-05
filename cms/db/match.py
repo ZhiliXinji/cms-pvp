@@ -78,3 +78,57 @@ class Match(Base):
     )
 
     batch = Column(Integer, nullable=True)
+
+class MatchResult(Base):
+    """Class to store a match result."""
+
+    EVALUATING = 1
+    SCORING = 2
+    SCORED = 3
+
+    __tablename__ = "match_results"
+
+    # Auto increment primary key.
+    id = Column(Integer, primary_key=True)
+
+    match_id = Column(
+        Integer,
+        ForeignKey(Match.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    match = relationship(
+        Match,
+        foreign_keys=[match_id],
+        uselist=False,
+    )
+
+    evaluation_outcome = Column(Enum("ok", name="evaluation_outcome"), nullable=True)
+
+    # 1.0 for submission1 win, 0.5 for draw, 0.0 for submission2 win
+    score = Column(Float, nullable=True)
+
+    def evaluated(self):
+        """Return whether the submission result has been evaluated.
+
+        return (bool): True if evaluated, False otherwise.
+
+        """
+        return self.evaluation_outcome is not None
+
+    def scored(self):
+        """Return whether the submission result has been scored.
+
+        return (bool): True if scored, False otherwise.
+
+        """
+        return self.score is not None
+
+    def get_status(self):
+        """Return the status of this object."""
+        if not self.evaluated():
+            return MatchResult.EVALUATING
+        elif not self.scored():
+            return MatchResult.SCORING
+        else:
+            return MatchResult.SCORED
