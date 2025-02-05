@@ -135,7 +135,6 @@ def add_submission(contest_id, username, task_name, timestamp, files):
 
         # Create objects in the DB.
         submission = Submission(
-            "submission",
             make_datetime(timestamp),
             language_name,
             participation=participation,

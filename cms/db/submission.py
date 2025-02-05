@@ -46,28 +46,8 @@ class Submission(Base):
     """
     __tablename__ = 'submissions'
 
-
-    # type to distinguish between normal submissions and matches
-    submission_type = Column(String(50))
-
     # Auto increment primary key.
-    id = Column(
-        Integer,
-        primary_key=True)
-
-    opponent_id = Column(
-        Integer,
-        ForeignKey("submissions.id", onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=True,
-        index=True,
-    )
-    opponent = relationship(
-        "Submission",
-        remote_side=[id],
-        foreign_keys=[opponent_id],
-        primaryjoin="Submission.opponent_id == Submission.id",
-        uselist=False,
-    )
+    id = Column(Integer, primary_key=True)
 
     # User and Contest, thus Participation (id and object) that did the
     # submission.

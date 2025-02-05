@@ -23,16 +23,16 @@ import sys
 import time
 
 from cms import utf8_decoder, ServiceCoord
-from cms.db import SessionGen, Task, Submission, Participation, File
+from cms.db import SessionGen, Task, Submission, Participation, File, Match
 from cmscommon.datetime import make_datetime
 from cms.io import RemoteServiceClient
 
-def maybe_send_notification(submission_id):
-    """Non-blocking attempt to notify a running ES of the submission"""
-    rs = RemoteServiceClient(ServiceCoord("EvaluationService", 0))
-    rs.connect()
-    rs.new_submission(submission_id=submission_id)
-    rs.disconnect()
+# def maybe_send_notification(submission_id):
+#     """Non-blocking attempt to notify a running ES of the submission"""
+#     rs = RemoteServiceClient(ServiceCoord("EvaluationService", 0))
+#     rs.connect()
+#     rs.new_submission(submission_id=submission_id)
+#     rs.disconnect()
 
 def get_last_submission(session, participation, task):
     last_submission = (
@@ -40,7 +40,6 @@ def get_last_submission(session, participation, task):
         .join(Submission.participation)
         .join(Submission.task)
         .filter(Participation.id == participation.id)
-        .filter(Submission.submission_type == "submission")
         .filter(Task.id == task.id)
         .order_by(Submission.timestamp.desc())
         .first()
@@ -56,30 +55,12 @@ def add_match(session, task, p1, p2):
     if not s2:
         return False
 
-    print(s1.files)
-
-    files = {
-        f.filename: File(
-            filename=f.filename,
-            digest=f.digest,
-        )
-        for f in s1.files.values()
-    }
-
-    match = Submission(
-        "match",
-        make_datetime(time.time()),
-        language=s1.language,
-        participation=s1.participation,
-        task=s1.task,
-        opponent=s2,
-        files=files,
-    )
+    match = Match(submission1=s1, submission2=s2)
 
     session.add(match)
     session.commit()
 
-    maybe_send_notification(match.id)
+    # maybe_send_notification(match.id) # TODO : update it
 
     return True
 

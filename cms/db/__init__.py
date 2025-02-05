@@ -108,6 +108,7 @@ __all__ = [
     "get_submission_results",
     "get_datasets_to_judge",
     "enumerate_files",
+    "match",
 ]
 
 
@@ -136,6 +137,7 @@ from .submission import Submission, File, Token, SubmissionResult, \
 from .usertest import UserTest, UserTestFile, UserTestManager, \
     UserTestResult, UserTestExecutable
 from .printjob import PrintJob
+from .match import Match
 
 from .init import init_db
 from .drop import drop_db
