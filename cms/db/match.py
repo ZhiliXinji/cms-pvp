@@ -150,14 +150,13 @@ class MatchResult(Base):
     # These one-to-many relationships are the reversed directions of
     # the ones defined in the "child" classes using foreign keys.
 
-    # TODO: add match_result parameter to Executable.
-    executables = relationship(
-        "Executable",
-        collection_class=attribute_mapped_collection("filename"),
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    # back_populates="match_result")
+    # TODO: implement this.
+    # executables = relationship(
+    #     "Executable",
+    #     collection_class=attribute_mapped_collection("filename"),
+    #     cascade="all, delete-orphan",
+    #     passive_deletes=True,
+    #     back_populates="match_result")
 
     matchings = relationship(
         "Matching",
