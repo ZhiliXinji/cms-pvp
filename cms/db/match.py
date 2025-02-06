@@ -35,27 +35,30 @@ from sqlalchemy.sql import insert
 
 from cmscommon.datetime import make_datetime
 from . import (
+    File,
     Filename,
     FilenameSchema,
     Digest,
     Base,
     Participation,
     Task,
+    Executable,
     Submission,
+    SubmissionResult,
     Dataset,
     Testcase,
     SessionGen,
 )
 
-
 class Match(Base):
-    """Class to store a match."""
+    """Class to store a match between two submissions."""
 
     __tablename__ = "matches"
 
     # Auto increment primary key.
     id = Column(Integer, primary_key=True)
 
+    # Store two relevant submission
     submission1_id = Column(
         Integer,
         ForeignKey(Submission.id, onupdate="CASCADE", ondelete="CASCADE"),
@@ -67,7 +70,6 @@ class Match(Base):
         foreign_keys=[submission1_id],
         uselist=False,
     )
-
     submission2_id = Column(
         Integer,
         ForeignKey(Submission.id, onupdate="CASCADE", ondelete="CASCADE"),
@@ -80,6 +82,19 @@ class Match(Base):
         uselist=False,
     )
 
+    # Task of the match
+    task_id = Column(
+        Integer,
+        ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    task = relationship(Task)
+
+    # Time of the match.
+    timestamp = Column(DateTime, nullable=False)
+
+    # Result of the match
     result = relationship(
         "MatchResult",
         back_populates="match",
@@ -90,29 +105,73 @@ class Match(Base):
     batch = Column(Integer, nullable=True)
 
 class MatchResult(Base):
-    """Class to store a match result."""
+    """Class to store a match result.
+    TODO: Need to complete.
+    """
 
-    EVALUATING = 1
-    SCORING = 2
-    SCORED = 3
+    # TODO: add COMPILING and COMPILATION_FAILED judgement.
+    COMPILING = 1
+    COMPILATION_FAILED = 2
+    EVALUATING = 3
+    SCORING = 4
+    SCORED = 5
 
     __tablename__ = "match_results"
+    __table_args__ = (UniqueConstraint("match_id", "dataset_id"),)
 
-    # Auto increment primary key.
-    id = Column(Integer, primary_key=True)
-
+    # Primary key is (match_id, dataset_id).
     match_id = Column(
         Integer,
         ForeignKey(Match.id, onupdate="CASCADE", ondelete="CASCADE"),
-        unique=True,
-        nullable=False,
+        primary_key=True,
     )
-    match = relationship("Match", back_populates="result", uselist=False)
+    match = relationship(Match, back_populates="result")
+
+    dataset_id = Column(
+        Integer,
+        ForeignKey(Dataset.id, onupdate="CASCADE", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    dataset = relationship(Dataset)
+
+    # TODO: Need to complete like submission_result.
+
+    # Score details. It's a JSON-like structure containing information
+    # that is given to ScoreType.get_html_details to generate an HTML
+    # snippet that is shown on AWS and, if the user used a token, on
+    # CWS to display the details of the submission.
+    # For example, results for each testcases, subtask, etc.
+    score_details = Column(JSONB, nullable=True)
+
+    # Ranking score details. It is a list of strings that are going to
+    # be shown in a single row in the table of submission in RWS.
+    ranking_score_details = Column(ARRAY(String), nullable=True)
+
+    # These one-to-many relationships are the reversed directions of
+    # the ones defined in the "child" classes using foreign keys.
+
+    # TODO: add match_result parameter to Executable.
+    executables = relationship(
+        "Executable",
+        collection_class=attribute_mapped_collection("filename"),
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    # back_populates="match_result")
+
+    matchings = relationship(
+        "Matching",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        back_populates="result",
+    )
 
     evaluation_outcome = Column(Enum("ok", name="evaluation_outcome"), nullable=True)
 
-    # 1.0 for submission1 win, 0.5 for draw, 0.0 for submission2 win
-    score = Column(Float, nullable=True)
+    # Performance points of both sides, inside [0.0, 1.0].
+    # XXX: Will be changed to an array when not just PvP, like 5v5.
+    score1 = Column(Float, nullable=True)
+    score2 = Column(Float, nullable=True)
 
     def evaluated(self):
         """Return whether the submission result has been evaluated.
@@ -128,7 +187,7 @@ class MatchResult(Base):
         return (bool): True if scored, False otherwise.
 
         """
-        return self.score is not None
+        return self.score1 is not None or self.score2 is not None
 
     def get_status(self):
         """Return the status of this object."""
@@ -139,6 +198,72 @@ class MatchResult(Base):
         else:
             return MatchResult.SCORED
 
+class Matching(Base):
+    """Class to store a matching against one testcase.
+    TODO: add parameters around evaluation stats.
+    """
+
+    __tablename__ = "matchings"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ("match_id", "dataset_id"),
+            (
+                MatchResult.match_id,
+                MatchResult.dataset_id,
+            ),
+            onupdate="CASCADE",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("match_id", "dataset_id", "testcase_id"),
+    )
+
+    # Auto increment primary key.
+    id = Column(Integer, primary_key=True)
+
+    # Match (id and object) owning the matching.
+    match_id = Column(
+        Integer,
+        ForeignKey(Match.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    match = relationship(Match, viewonly=True)
+
+    # Dataset (id and object) owning the matching.
+    dataset_id = Column(
+        Integer,
+        ForeignKey(Dataset.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    dataset = relationship(Dataset, viewonly=True)
+
+    # MatchResult owning the matching.
+    result = relationship(MatchResult, back_populates="matchings")
+
+    # Testcase (id and object) this matching was performed on.
+    testcase_id = Column(
+        Integer,
+        ForeignKey(Testcase.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    testcase = relationship(Testcase)
+
+    # String containing the outcome of the matching. (usually 1.0 1.0,
+    # ... where first two float numbers infer performance points of both sides)
+    outcome = Column(Unicode, nullable=True)
+
+    # The output from the grader, usually "Correct", "Time limit", ...
+    # (to allow localization the first item of the list is a format
+    # string, possibly containing some "%s", that will be filled in
+    # using the remaining items of the list).
+    text = Column(ARRAY(String), nullable=False, default=[])
+
+    @property
+    def codename(self):
+        """Return the codename of the testcase."""
+        return self.testcase.codename
 
 @listens_for(Match, "after_insert")
 def create_match_result(mapper, connection, target):
