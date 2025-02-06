@@ -52,6 +52,11 @@ def add_match(session, task, p1, p2):
     s1 = get_last_submission(session, p1, task)
     s2 = get_last_submission(session, p2, task)
 
+    if not s1:
+        return False
+    if not s2:
+        return False
+
     match = Match(submission1=s1, submission2=s2, batch=task.pvp_batch)
 
     session.add(match)

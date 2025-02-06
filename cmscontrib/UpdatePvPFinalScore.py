@@ -36,12 +36,13 @@ from cms.db import (
 from cmscommon.datetime import make_datetime
 from cms.io import RemoteServiceClient
 from sqlalchemy.orm import aliased
+from .StartMatch import get_last_submission
 
 class Elo:
     players = {}
 
     def __init__(self, participation_ids):
-        self.players = {i: 1200 for i in participation_ids}
+        self.players = {i: 1200.0 for i in participation_ids}
 
     @staticmethod
     def expected_score(rating_a, rating_b):
@@ -119,6 +120,10 @@ def update_final_score(task_name):
         # elo
         if match_mode == "elo":
             elo = Elo(participation_ids=[p.id for p in task.contest.participations])
+
+            for p in task.contest.participations:
+                if not get_last_submission(session, p, task):
+                    elo.players[p.id] = 0.0
 
             for match in matches:
                 if match.result.get_status() != MatchResult.SCORED:

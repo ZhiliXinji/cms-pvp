@@ -59,7 +59,7 @@ class Match(Base):
     submission1_id = Column(
         Integer,
         ForeignKey(Submission.id, onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
     submission1 = relationship(
@@ -71,7 +71,7 @@ class Match(Base):
     submission2_id = Column(
         Integer,
         ForeignKey(Submission.id, onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
     submission2 = relationship(
