@@ -55,7 +55,7 @@ def add_match(session, task, p1, p2):
     if not s2:
         return False
 
-    match = Match(submission1=s1, submission2=s2)
+    match = Match(submission1=s1, submission2=s2, batch=task.pvp_batch)
 
     session.add(match)
     session.commit()
@@ -64,8 +64,19 @@ def add_match(session, task, p1, p2):
 
     return True
 
+def next_batch(task_name):
+    with SessionGen() as session:
+        task = session.query(Task).filter(Task.name == task_name).first()
+        if not task:
+            print("No task called `%s' found." % task_name)
+            return False
+        task.pvp_batch += 1
+        session.commit()
+    return True
 
 def start_match(task_name):
+    if not next_batch(task_name):
+        return False
     with SessionGen() as session:
         task = session.query(Task).filter(Task.name == task_name).first()
         if not task:

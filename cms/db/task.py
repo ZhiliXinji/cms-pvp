@@ -266,6 +266,12 @@ class Task(Base):
         passive_deletes=True,
         back_populates="task")
 
+    pvp_batch = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
     def validate_score_mode(self):
         if self.datasets and any(
             dataset.task_type == "PvP" for dataset in self.datasets

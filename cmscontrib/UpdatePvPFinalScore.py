@@ -48,6 +48,7 @@ def get_last_match(session, participation1, participation2, task):
         .join(sub2, Match.submission2)
         .filter(sub1.participation_id == participation1.id, sub1.task_id == task.id)
         .filter(sub2.participation_id == participation2.id)
+        .filter(Match.batch == task.pvp_batch)
         .order_by(Match.id.desc())
         .first()
     )
