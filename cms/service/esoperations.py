@@ -490,11 +490,12 @@ def get_user_tests_operations(session, contest_id=None):
 
 
 class ESOperation(QueueItem):
-
+    # TODO: implement function around user tests for matching
     COMPILATION = "compile"
     EVALUATION = "evaluate"
     USER_TEST_COMPILATION = "compile_test"
     USER_TEST_EVALUATION = "evaluate_test"
+    USER_TEST_MATCH = "match_test"
 
     # Testcase codename is only needed for EVALUATION type of operation
     def __init__(self, type_, object_id, dataset_id, testcase_codename=None):
