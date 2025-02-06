@@ -180,6 +180,9 @@ class TaskFinalScore(Base):
 
     score = Column(Float, nullable=False, default=0.0)
 
+    win_matches = Column(Float, nullable=False, default=0)
+    total_matches = Column(Float, nullable=False, default=0)
+
     # Unique constraint.
     __table_args__ = (UniqueConstraint("task_id", "participation_id"),)
 

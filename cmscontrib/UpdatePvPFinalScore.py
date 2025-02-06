@@ -62,10 +62,10 @@ def update_final_score(task_name):
             print("No task called `%s' found." % task_name)
             return False
 
-        # round-robin
         total_matches = {p.id: 0.0 for p in task.contest.participations}
         win_matches = {p.id: 0.0 for p in task.contest.participations}
         final_scores = {p.id: 0.0 for p in task.contest.participations}
+
         for p1 in task.contest.participations:
             for p2 in task.contest.participations:
                 match = get_last_match(session, p1, p2, task)
@@ -77,9 +77,12 @@ def update_final_score(task_name):
                     total_matches[p2.id] += 1.0
                     win_matches[p1.id] += match.result.score
                     win_matches[p2.id] += 1.0 - match.result.score
+
+        # round-robin
         for p in task.contest.participations:
             if total_matches[p.id] != 0.0:
                 final_scores[p.id] = win_matches[p.id] / total_matches[p.id]
+        # end round-robin
 
         for p in task.contest.participations:
             task_final_score = TaskFinalScore.get_from_id(
@@ -91,6 +94,8 @@ def update_final_score(task_name):
             )
 
             task_final_score.score = final_scores[p.id]
+            task_final_score.win_matches = win_matches[p.id]
+            task_final_score.total_matches = total_matches[p.id]
 
         session.commit()
 
