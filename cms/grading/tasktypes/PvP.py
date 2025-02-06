@@ -233,30 +233,21 @@ class PvP(TaskType):
         # Cleanup.
         delete_sandbox(sandbox, job.success, job.keep_sandbox)
 
-    def evaluate(self, jobs, file_cacher):
-        """See TaskType.evaluate.
-        NOTE: This jobs should be a list of MatchJob in size 2.
-            Assume that jobs[0] is the job of current user, and jobs[1] is the job of the opponent.
-            Output will be stoarged in jobs[0], and info of jobs[0] will be presented to the current user.
-        """
-
-        # TODO: check if two jobs are compatible (same manager, same input, etc.)
-        if (
-            not len(jobs) == 2
-            or not check_executables_number(jobs[0], 1)
-            or not check_executables_number(jobs[1], 1)
-        ):
-            return
-
-        # Use jobs[0] as the main job.
-        job = jobs[0]
+    def match(self, job, file_cacher):
+        """See TaskType.match."""
 
         # PvP means 2 users.
-        indices = range(2)
+        players = 2
 
-        executable_filenames = [jobs[i].executables.keys() for i in indices]
+        # XXX: Consider better implementation.
+        if not check_executables_number(job, players):
+            return
+
+        indices = range(players)
+
+        executable_filenames = [next(iter(job.executables[i].keys())) for i in indices]
         executable_digests = [
-            jobs[i].executables[executable_filenames[i]].digest
+            job.executables[i][executable_filenames[i]].digest
             for i in executable_filenames
         ]
 
@@ -330,7 +321,7 @@ class PvP(TaskType):
         #     constraint on the total time can only be enforced after all user
         #     programs terminated.
         manager_time_limit = max(
-            2 * (job.time_limit + 1.0),
+            players * (job.time_limit + 1.0),
             config.trusted_sandbox_max_time_s,
         )
         manager = evaluation_step_before_run(
@@ -345,7 +336,7 @@ class PvP(TaskType):
         )
 
         # Start the user submissions compiled with the stub.
-        languages = [get_language(jobs[i].language) for i in indices]
+        languages = [get_language(job.language[i]) for i in indices]
         main = [
             (
                 self.STUB_BASENAME
@@ -374,11 +365,12 @@ class PvP(TaskType):
             # that don't need tight control.
             if len(commands) > 1:
                 trusted_step(sandbox_user[i], commands[:-1])
+            # XXX: What if different languages have different time limits?
             processes[i] = evaluation_step_before_run(
                 sandbox_user[i],
                 commands[-1],
-                jobs[i].time_limit,
-                jobs[i].memory_limit,
+                job.time_limit,
+                job.memory_limit,
                 dirs_map={fifo_dir[i]: (sandbox_fifo_dir[i], "rw")},
                 stdin_redirect=stdin_redirect,
                 stdout_redirect=stdout_redirect,
@@ -410,17 +402,17 @@ class PvP(TaskType):
 
         # If just asked to execute, fill text and set dummy outcome.
         elif job.only_execution:
-            outcome = 0.0
+            outcome = "0.0 0.0"
             text = [N_("Execution completed successfully")]
 
         # If any user sandbox detected some problem (timeout, ...),
         # the outcome is 0.0 and the text describes that problem.
         elif not all(evaluation_success_user):
             if evaluation_success_user[0]:
-                outcome = 1.0
+                outcome = "1.0 0.0"
                 text = [N_("You win because the opponent's program failed to execute")]
             elif evaluation_success_user[1]:
-                outcome = 0.0
+                outcome = "0.0 1.0"
                 text = [
                     N_(
                         "You lose because your program failed to execute. The info of your program is:\n"
@@ -428,7 +420,7 @@ class PvP(TaskType):
                     + human_evaluation_message(stats_user[0])[0]
                 ]
             else:
-                outcome = 0.0
+                outcome = "0.0 0.0"
                 text = [
                     N_(
                         "All user programs failed to execute. The info of your program is:\n"
@@ -464,3 +456,4 @@ class PvP(TaskType):
         if job.success and not config.keep_sandbox and not job.keep_sandbox:
             for d in fifo_dir:
                 rmtree(d)
+
