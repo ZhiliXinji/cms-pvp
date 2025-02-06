@@ -32,7 +32,7 @@ compilation and the evaluation are contained in the task type class.
 import re
 from abc import ABCMeta, abstractmethod
 
-from cms.grading.Job import CompilationJob, EvaluationJob
+from cms.grading.Job import CompilationJob, EvaluationJob, MatchJob
 
 
 class TaskType(metaclass=ABCMeta):
@@ -217,6 +217,26 @@ class TaskType(metaclass=ABCMeta):
         """
         pass
 
+    def match(self, job, file_cacher):
+        """Try to evaluate the given MatchJob. This is not neccessary
+        for some task types, so the default implementation is a no-op.
+
+        Set job.success to True when *our infrastracture* is successful
+        (i.e. the actual program may score or not), and to False when
+        the evaluation fails because of environmental problems (trying
+        again to compile the same submission in a sane environment
+        should lead to True).
+
+        job (MatchJob): the data structure that contains details
+                        about the work that has to be done and
+                        that will hold its results.
+        file_cacher (FileCacher): the file cacher to use to obtain the
+                                  required files and to store the ones
+                                  that are produced.
+
+        """
+        pass
+
     def execute_job(self, job, file_cacher):
         """Call compile() or execute() depending on the job passed
         when constructing the TaskType.
@@ -226,6 +246,9 @@ class TaskType(metaclass=ABCMeta):
             self.compile(job, file_cacher)
         elif isinstance(job, EvaluationJob):
             self.evaluate(job, file_cacher)
+        elif isinstance(job, MatchJob):
+            self.match(job, file_cacher)
         else:
-            raise ValueError("The job isn't neither CompilationJob "
-                             "or EvaluationJob")
+            raise ValueError(
+                "The job isn't neither CompilationJob or EvaluationJob or MatchJob"
+            )
