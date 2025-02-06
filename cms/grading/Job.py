@@ -29,14 +29,24 @@ the name of the task type, not the task type object itself).
 
 A Job represents an indivisible action of a Worker, for example
 "compile the submission" or "evaluate the submission on a certain
-testcase".
+testcase" or "make a matching of two submissions on a certain testcase".
 
 """
 
 import logging
 
-from cms.db import Dataset, Evaluation, Executable, File, Manager, Submission, \
-    UserTest, UserTestExecutable
+from cms.db import (
+    Dataset,
+    Evaluation,
+    Executable,
+    File,
+    Manager,
+    Submission,
+    UserTest,
+    UserTestExecutable,
+    Match,
+    Matching,
+)
 from cms.grading.languagemanager import get_language
 from cms.service.esoperations import ESOperation
 
@@ -651,6 +661,223 @@ class EvaluationJob(Job):
         ur.evaluation_sandbox = ":".join(self.sandboxes)
         ur.output = self.user_output
 
+class MatchJob(Job):
+    """Job representing a matching on a testcase, only in PvP mode.
+
+    Can represent either the evaluation of a user test, or of a
+    submission, or of an arbitrary source (as used in cmsMake).
+
+    Input data (usually filled by ES): testcase_codename, language,
+    files, managers, executables, input, output, time_limit,
+    memory_limit. Output data (filled by the Worker): success,
+    outcome, text, user_output, executables, text, plus. Metadata:
+    only_execution, get_output.
+
+    NOTE: This is a subclass of Job, but below we override the type settings:
+    - language ([(string|None)]) is a list of languages, one for each submission,
+      not (string|None)
+    - executables ([({string: Executable}|None)]) is a list of executables,
+      one for each submission, not {string: Executable}|None
+    - files ([({string: File}|None)]) is a list of executables,
+      one for each submission, not {string: Executable}|None
+    """
+
+    def __init__(
+        self,
+        operation=None,
+        task_type=None,
+        task_type_parameters=None,
+        shard=None,
+        keep_sandbox=False,
+        sandboxes=None,
+        info=None,
+        language=None,
+        multithreaded_sandbox=False,
+        files=None,
+        managers=None,
+        executables=None,
+        input=None,
+        output=None,
+        time_limit=None,
+        memory_limit=None,
+        success=None,
+        outcome=None,
+        text=None,
+        user_output=None,
+        plus=None,
+        only_execution=False,
+        get_output=False,
+    ):
+        """Initialization.
+
+        See base class for the remaining arguments.
+
+        languages ({}|None): the language used in each executable.
+            Original `language` parameter will be ignored.
+        input (string|None): digest of the input file.
+        output (string|None): digest of the output file.
+        time_limit (float|None): user time limit in seconds.
+        memory_limit (int|None): memory limit in bytes.
+        outcome (string|None): the outcome of the evaluation, from
+            which to compute the score.
+        user_output (unicode|None): if requested (with get_output),
+            the digest of the file containing the output of the user
+            program.
+        plus ({}|None): additional metadata.
+        only_execution (bool|None): whether to perform only the
+            execution, or to compare the output with the reference
+            solution too.
+        get_output (bool|None): whether to retrieve the execution
+            output (together with only_execution, useful for the user
+            tests).
+
+        """
+        Job.__init__(
+            self,
+            operation,
+            task_type,
+            task_type_parameters,
+            language,
+            multithreaded_sandbox,
+            shard,
+            keep_sandbox,
+            sandboxes,
+            info,
+            success,
+            text,
+            files,
+            managers,
+            executables,
+        )
+        self.input = input
+        self.output = output
+        self.time_limit = time_limit
+        self.memory_limit = memory_limit
+        self.outcome = outcome
+        self.user_output = user_output
+        self.plus = plus
+        self.only_execution = only_execution
+        self.get_output = get_output
+
+    def export_to_dict(self):
+        res = Job.export_to_dict(self)
+        res.update(
+            {
+                "type": "evaluation",
+                "language": self.language,
+                "input": self.input,
+                "output": self.output,
+                "time_limit": self.time_limit,
+                "memory_limit": self.memory_limit,
+                "outcome": self.outcome,
+                "user_output": self.user_output,
+                "plus": self.plus,
+                "only_execution": self.only_execution,
+                "get_output": self.get_output,
+            }
+        )
+        return res
+
+    @staticmethod
+    def from_match(operation, match: Match, dataset):
+        """Create an MatchJob from a matching.
+
+        operation (ESOperation): an EVALUATION operation.
+        match (Match): the match object referred by the
+            operation.
+        dataset (Dataset): the dataset object referred by the
+            operation.
+
+        return (MatchJob): the job.
+
+        """
+        if operation.type_ != ESOperation.EVALUATION:
+            logger.error(
+                "Programming error: asking for a match job, but the operation is %s.",
+                operation.type_,
+            )
+            raise ValueError("Operation is not a match")
+
+        multithreaded = _is_contest_multithreaded(match.task.contest)
+
+        # XXX: Use list to implement, to fit multiplayers's battle, like 5v5.
+        submission_result1 = match.submission1.get_result(dataset)
+        submission_result2 = match.submission2.get_result(dataset)
+
+        # This should have been created by now.
+        assert submission_result1 is not None and submission_result2 is not None
+
+        if submission_result1.task_id != submission_result2.task_id:
+            logger.error(
+                "Programming error: asking for a match job, "
+                "but the submissions are from different tasks."
+            )
+            raise ValueError("Submissions can't make a match")
+
+        testcase = dataset.testcases[operation.testcase_codename]
+
+        info = (
+            "evaluate match %d between submission %d and submission %d on testcase %s"
+            % (
+                match.id,
+                match.submission1.id,
+                match.submission2.id,
+                testcase.codename,
+            )
+        )
+
+        # dict() is required to detach the dictionary that gets added
+        # to the Job from the control of SQLAlchemy
+        return MatchJob(
+            operation=operation,
+            task_type=dataset.task_type,
+            task_type_parameters=dataset.task_type_parameters,
+            language=[match.submission1.language, match.submission2.language],
+            multithreaded_sandbox=multithreaded,
+            files=[dict(match.submission1.files), dict(match.submission2.files)],
+            managers=dict(dataset.managers),
+            executables=[
+                dict(submission_result1.executables),
+                dict(submission_result2.executables),
+            ],
+            input=testcase.input,
+            output=testcase.output,
+            time_limit=dataset.time_limit,
+            memory_limit=dataset.memory_limit,
+            info=info,
+        )
+
+    def to_match(self, mr):
+        """Fill detail of the match result with the job result.
+
+        mr (MatchResult): the DB object to fill.
+
+        """
+        # No need to check self.success because this method gets called
+        # only if it is True.
+
+        mr.matchings += [
+            # TODO: add parameters around evaluation stats.
+            Matching(
+                text=self.text,
+                outcome=self.outcome,
+                # execution_time=self.plus.get("execution_time"),
+                # execution_wall_clock_time=self.plus.get("execution_wall_clock_time"),
+                # execution_memory=self.plus.get("execution_memory"),
+                # evaluation_shard=self.shard,
+                # evaluation_sandbox=":".join(self.sandboxes),
+                testcase=mr.dataset.testcases[self.operation.testcase_codename],
+            )
+        ]
+
+    @staticmethod
+    def from_user_test(operation, user_test, dataset):
+        # TODO: Implement this
+        pass
+
+    def to_user_test(self, ur):
+        # TODO: Implement this
+        pass
 
 class JobGroup:
     """A simple collection of jobs."""
