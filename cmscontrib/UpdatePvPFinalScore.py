@@ -37,6 +37,31 @@ from cmscommon.datetime import make_datetime
 from cms.io import RemoteServiceClient
 from sqlalchemy.orm import aliased
 
+class Elo:
+    players = {}
+
+    def __init__(self, participation_ids):
+        self.players = {i: 1200 for i in participation_ids}
+
+    @staticmethod
+    def expected_score(rating_a, rating_b):
+        return 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
+
+    @staticmethod
+    def update_elo(rating, expected, actual, k=32):
+        return rating + k * (actual - expected)
+
+    def update_scores(self, player_a, player_b, result):
+        expected_a = Elo.expected_score(self.players[player_a], self.players[player_b])
+        expected_b = Elo.expected_score(self.players[player_b], self.players[player_a])
+
+        self.players[player_a] = Elo.update_elo(
+            self.players[player_a], expected_a, result
+        )
+        self.players[player_b] = Elo.update_elo(
+            self.players[player_b], expected_b, 1.0 - result
+        )
+
 
 def get_last_match(session, participation1, participation2, task):
     sub1 = aliased(Submission)
@@ -66,23 +91,48 @@ def update_final_score(task_name):
         win_matches = {p.id: 0.0 for p in task.contest.participations}
         final_scores = {p.id: 0.0 for p in task.contest.participations}
 
-        for p1 in task.contest.participations:
-            for p2 in task.contest.participations:
-                match = get_last_match(session, p1, p2, task)
-                if match:
-                    if match.result.get_status() != MatchResult.SCORED:
-                        print("Match %d is not scored." % match.id)
-                        return False
-                    total_matches[p1.id] += 1.0
-                    total_matches[p2.id] += 1.0
-                    win_matches[p1.id] += match.result.score
-                    win_matches[p2.id] += 1.0 - match.result.score
+        matches = (
+            session.query(Match)
+            .filter(Match.batch == task.pvp_batch)
+            .order_by(Match.id.desc())
+            .all()
+        )
+
+        for match in matches:
+            if match.result.get_status() != MatchResult.SCORED:
+                print("Match %d is not scored." % match.id)
+                return False
+            total_matches[match.submission1.participation.id] += 1.0
+            total_matches[match.submission2.participation.id] += 1.0
+            win_matches[match.submission1.participation.id] += match.result.score
+            win_matches[match.submission2.participation.id] += 1.0 - match.result.score
+
+        match_mode = "elo"
 
         # round-robin
-        for p in task.contest.participations:
-            if total_matches[p.id] != 0.0:
-                final_scores[p.id] = win_matches[p.id] / total_matches[p.id]
+        if match_mode == "round-robin":
+            for p in task.contest.participations:
+                if total_matches[p.id] != 0.0:
+                    final_scores[p.id] = win_matches[p.id] / total_matches[p.id]
         # end round-robin
+
+        # elo
+        if match_mode == "elo":
+            elo = Elo(participation_ids=[p.id for p in task.contest.participations])
+
+            for match in matches:
+                if match.result.get_status() != MatchResult.SCORED:
+                    print("Match %d is not scored." % match.id)
+                    return False
+                elo.update_scores(
+                    match.submission1.participation_id,
+                    match.submission2.participation_id,
+                    match.result.score,
+                )
+
+            for p in task.contest.participations:
+                final_scores[p.id] = elo.players[p.id]
+        # end elo
 
         for p in task.contest.participations:
             task_final_score = TaskFinalScore.get_from_id(

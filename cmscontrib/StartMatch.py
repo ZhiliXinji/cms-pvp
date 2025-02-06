@@ -21,6 +21,7 @@
 import argparse
 import sys
 import time
+import random
 
 from cms import utf8_decoder, ServiceCoord
 from cms.db import SessionGen, Task, Submission, Participation, File, Match
@@ -50,10 +51,6 @@ def get_last_submission(session, participation, task):
 def add_match(session, task, p1, p2):
     s1 = get_last_submission(session, p1, task)
     s2 = get_last_submission(session, p2, task)
-    if not s1:
-        return False
-    if not s2:
-        return False
 
     match = Match(submission1=s1, submission2=s2, batch=task.pvp_batch)
 
@@ -83,11 +80,24 @@ def start_match(task_name):
             print("No task called `%s' found." % task_name)
             return False
 
+        match_mode = "elo"
+
         # round-robin
-        for p1 in task.contest.participations:
-            for p2 in task.contest.participations:
-                if p1.id != p2.id:
-                    add_match(session, task, p1, p2)
+        if match_mode == "round-robin":
+            for p1 in task.contest.participations:
+                for p2 in task.contest.participations:
+                    if p1.id != p2.id:
+                        add_match(session, task, p1, p2)
+        # end round-robin
+
+        # elo
+        num_matches = 2  # set it larger to make result more accurate
+
+        if match_mode == "elo":
+            for _ in range(num_matches):
+                player_a, player_b = random.sample(task.contest.participations, 2)
+                add_match(session, task, player_a, player_b)
+        # end elo
 
     return True
 
