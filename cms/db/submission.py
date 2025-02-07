@@ -95,6 +95,13 @@ class Submission(Base):
         default=True,
     )
 
+    # Batch number for PvP matches
+    pvp_batch = Column(
+        Integer,
+        nullable=True,
+        default=None,
+    )
+
     @property
     def short_comment(self):
         """The first line of the comment."""
@@ -376,13 +383,6 @@ class SubmissionResult(Base):
     ranking_score_details = Column(
         ARRAY(String),
         nullable=True)
-
-    # Batch number for PvP matches
-    pvp_batch = Column(
-        Integer,
-        nullable=True,
-        default=None,
-    )
 
     # These one-to-many relationships are the reversed directions of
     # the ones defined in the "child" classes using foreign keys.

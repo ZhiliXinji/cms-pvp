@@ -53,7 +53,8 @@ def get_match_submission(session, task, participation):
         .join(Submission.participation)
         .join(Submission.task)
         .filter(Participation.id == participation.id)
-        .filter(Task.id == task.id, Submission.pvp_batch == task.pvp_batch)
+        .filter(Task.id == task.id)
+        .filter(Submission.pvp_batch == task.pvp_batch)
         .first()
     )
     return match_submission
