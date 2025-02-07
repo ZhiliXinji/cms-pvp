@@ -48,7 +48,7 @@ def get_last_submission(session, participation, task):
     return last_submission
 
 
-def add_match(session, task, p1, p2):
+def add_match(session, task, timestamp, p1, p2):
     s1 = get_last_submission(session, p1, task)
     s2 = get_last_submission(session, p2, task)
 
@@ -57,7 +57,12 @@ def add_match(session, task, p1, p2):
     if not s2:
         return False
 
-    match = Match(submission1=s1, submission2=s2, batch=task.pvp_batch)
+    match = Match(
+        submission1=s1,
+        submission2=s2,
+        timestamp=make_datetime(timestamp),
+        batch=task.pvp_batch,
+    )
 
     session.add(match)
     session.commit()

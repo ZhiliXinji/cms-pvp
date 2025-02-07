@@ -117,7 +117,7 @@ def add_single_match(contest_id, username, task_name, timestamp, opponentname):
 
 
         # Create objects in the DB.
-        add_match(session, task, participation, o_participation)
+        add_match(session, task, timestamp, participation, o_participation)
 
     return True
 
