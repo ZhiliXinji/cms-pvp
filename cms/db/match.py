@@ -94,6 +94,7 @@ class Match(Base):
         secondary=Submission.__tablename__,
         primaryjoin="and_(Match.submission1_id == Submission.id, Match.submission2_id == Submission.id)",
         secondaryjoin="Task.id == Submission.task_id",
+        uselist=False,
         viewonly=True,
     )
 
