@@ -47,10 +47,12 @@ class Worker(Service):
     operations are in the TaskType classes, while the sandbox is in
     the Sandbox module.
 
+    In PvP mode, the worker is also responsible for performing a matching.
     """
 
     JOB_TYPE_COMPILATION = "compile"
     JOB_TYPE_EVALUATION = "evaluate"
+    JOB_TYPE_MATCH = "match"
 
     def __init__(self, shard, fake_worker_time=None):
         Service.__init__(self, shard)
