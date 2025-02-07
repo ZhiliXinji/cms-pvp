@@ -377,6 +377,13 @@ class SubmissionResult(Base):
         ARRAY(String),
         nullable=True)
 
+    # Batch number for PvP matches
+    pvp_batch = Column(
+        Integer,
+        nullable=True,
+        default=None,
+    )
+
     # These one-to-many relationships are the reversed directions of
     # the ones defined in the "child" classes using foreign keys.
 

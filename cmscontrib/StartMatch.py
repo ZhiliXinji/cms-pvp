@@ -47,10 +47,20 @@ def get_last_submission(session, participation, task):
     )
     return last_submission
 
+def get_match_submission(session, task, participation):
+    match_submission = (
+        session.query(Submission)
+        .join(Submission.participation)
+        .join(Submission.task)
+        .filter(Participation.id == participation.id)
+        .filter(Task.id == task.id, Submission.pvp_batch == task.pvp_batch)
+        .first()
+    )
+    return match_submission
 
 def add_match(session, task, timestamp, p1, p2):
-    s1 = get_last_submission(session, p1, task)
-    s2 = get_last_submission(session, p2, task)
+    s1 = get_match_submission(session, p1, task)
+    s2 = get_match_submission(session, p2, task)
 
     if not s1:
         return False
@@ -81,8 +91,26 @@ def next_batch(task_name):
         session.commit()
     return True
 
+def mark_match_submissions(task_name):
+    """Mark the submissions that will be used in the match."""
+    with SessionGen() as session:
+        task = session.query(Task).filter(Task.name == task_name).first()
+        if not task:
+            print("No task called `%s' found." % task_name)
+            return False
+
+        for p in task.contest.participations:
+            submission = get_last_submission(session, p, task)
+            if submission:
+                submission.pvp_batch = task.pvp_batch
+        session.commit()
+    return True
+
+
 def start_match(task_name):
     if not next_batch(task_name):
+        return False
+    if not mark_match_submissions(task_name):
         return False
     with SessionGen() as session:
         task = session.query(Task).filter(Task.name == task_name).first()
@@ -97,7 +125,7 @@ def start_match(task_name):
             for p1 in task.contest.participations:
                 for p2 in task.contest.participations:
                     if p1.id != p2.id:
-                        add_match(session, task, p1, p2)
+                        add_match(session, task, time.time(), p1, p2)
         # end round-robin
 
         # elo
@@ -106,7 +134,7 @@ def start_match(task_name):
         if match_mode == "elo":
             for _ in range(num_matches):
                 player_a, player_b = random.sample(task.contest.participations, 2)
-                add_match(session, task, player_a, player_b)
+                add_match(session, task, time.time(), player_a, player_b)
         # end elo
 
     return True
