@@ -143,16 +143,10 @@ class MatchResult(Base):
 
     # TODO: Need to complete like submission_result.
 
-    # Score details. It's a JSON-like structure containing information
-    # that is given to ScoreType.get_html_details to generate an HTML
-    # snippet that is shown on AWS and, if the user used a token, on
-    # CWS to display the details of the submission.
-    # For example, results for each testcases, subtask, etc.
-    score_details = Column(JSONB, nullable=True)
-
-    # Ranking score details. It is a list of strings that are going to
-    # be shown in a single row in the table of submission in RWS.
-    ranking_score_details = Column(ARRAY(String), nullable=True)
+    # Match details. It's a JSON-like structure containing information
+    # about the match.
+    # TODO: determine the structure of this field.
+    match_details = Column(JSONB, nullable=True)
 
     # These one-to-many relationships are the reversed directions of
     # the ones defined in the "child" classes using foreign keys.
