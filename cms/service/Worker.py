@@ -33,7 +33,7 @@ import gevent.lock
 from cms.db import SessionGen, Contest, enumerate_files
 from cms.db.filecacher import FileCacher, TombstoneError
 from cms.grading import JobException
-from cms.grading.Job import CompilationJob, EvaluationJob, JobGroup
+from cms.grading.Job import CompilationJob, EvaluationJob, MatchJob, JobGroup
 from cms.grading.tasktypes import get_task_type
 from cms.io import Service, rpc_method
 
@@ -175,6 +175,8 @@ class Worker(Service):
             job.compilation_success = True
         elif isinstance(job, EvaluationJob):
             job.outcome = "1.0"
+        elif isinstance(job, MatchJob):
+            job.outcome = "1.0 1.0"
 
     def _finalize(self, start_time):
         end_time = time.time()
