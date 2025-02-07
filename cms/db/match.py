@@ -82,14 +82,20 @@ class Match(Base):
         uselist=False,
     )
 
-    # Task of the match
+    # Task of the match, gotten from submission1.task
     task_id = Column(
         Integer,
         ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    task = relationship(Task)
+    task = relationship(
+        Task,
+        secondary=Submission.__tablename__,
+        primaryjoin="and_(Match.submission1_id == Submission.id, Match.submission2_id == Submission.id)",
+        secondaryjoin="Task.id == Submission.task_id",
+        viewonly=True,
+    )
 
     # Time of the match.
     timestamp = Column(DateTime, nullable=False)
