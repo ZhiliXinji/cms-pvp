@@ -97,7 +97,7 @@ def start_match(task_name):
             for p1 in task.contest.participations:
                 for p2 in task.contest.participations:
                     if p1.id != p2.id:
-                        add_match(session, task, p1, p2)
+                        add_match(session, task, time.time(), p1, p2)
         # end round-robin
 
         # elo
@@ -106,7 +106,7 @@ def start_match(task_name):
         if match_mode == "elo":
             for _ in range(num_matches):
                 player_a, player_b = random.sample(task.contest.participations, 2)
-                add_match(session, task, player_a, player_b)
+                add_match(session, task, time.time(), player_a, player_b)
         # end elo
 
     return True
