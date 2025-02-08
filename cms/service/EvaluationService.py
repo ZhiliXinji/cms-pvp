@@ -1017,6 +1017,28 @@ class EvaluationService(TriggeredService):
             session.commit()
 
     @rpc_method
+    def new_match(self, match_id):
+        """This RPC prompts ES of the existence of a new
+        match. ES takes the right countermeasures, i.e., it
+        schedules it for compilation.
+
+        match_id (int): the id of the new match.
+
+        """
+        with SessionGen() as session:
+            match = Match.get_from_id(match_id, session)
+            if match is None:
+                logger.error(
+                    "[new_match] Couldn't find match %d in the database.",
+                    match_id,
+                )
+                return
+
+            self.match_enqueue_operations(match)
+
+            session.commit()
+
+    @rpc_method
     def new_user_test(self, user_test_id):
         """This RPC prompts ES of the existence of a new user test. ES
         takes takes the right countermeasures, i.e., it schedules it
