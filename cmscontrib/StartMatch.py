@@ -28,12 +28,12 @@ from cms.db import SessionGen, Task, Submission, Participation, File, Match
 from cmscommon.datetime import make_datetime
 from cms.io import RemoteServiceClient
 
-# def maybe_send_notification(submission_id):
-#     """Non-blocking attempt to notify a running ES of the submission"""
-#     rs = RemoteServiceClient(ServiceCoord("EvaluationService", 0))
-#     rs.connect()
-#     rs.new_submission(submission_id=submission_id)
-#     rs.disconnect()
+def maybe_send_notification(match_id):
+    """Non-blocking attempt to notify a running ES of the submission"""
+    rs = RemoteServiceClient(ServiceCoord("EvaluationService", 0))
+    rs.connect()
+    rs.new_match(match_id=match_id)
+    rs.disconnect()
 
 def get_last_submission(session, participation, task):
     last_submission = (
@@ -78,7 +78,7 @@ def add_match(session, task, timestamp, p1, p2):
     session.add(match)
     session.commit()
 
-    # maybe_send_notification(match.id) # TODO : update it
+    maybe_send_notification(match.id)
 
     return True
 
