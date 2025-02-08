@@ -147,6 +147,54 @@ def user_test_to_evaluate(user_test_result):
         not r.evaluated() and \
         r.evaluation_tries < MAX_USER_TEST_EVALUATION_TRIES
 
+def match_to_evaluate(match_result):
+    """Return whether ES is interested in evaluating the match.
+
+    match_result (MatchResult): a match result.
+
+    return (bool): True if ES wants to evaluate the match.
+
+    """
+
+    return (
+        match_result is not None
+        and not match_result.evaluated()
+        and match_result.evaluation_tries < MAX_EVALUATION_TRIES
+    )
+
+
+def match_get_operations(match_result, match, dataset):
+    """Generate all operations originating from a match for a given
+    dataset.
+
+    match_result (MatchResult|None): a match result.
+    match (Match): the match for match_result.
+    dataset (Dataset): the dataset for match_result.
+
+    yield (ESOperation, int, datetime): an iterator providing triplets
+        consisting of a ESOperation for a certain operation to
+        perform, its priority and its timestamp.
+
+    """
+
+    if not dataset.active:
+        priority = PriorityQueue.PRIORITY_EXTRA_LOW
+    elif match_result is None:
+        priority = PriorityQueue.PRIORITY_HIGH
+    else:
+        priority = PriorityQueue.PRIORITY_MEDIUM
+
+    evaluated_testcase_ids = set(
+        matching.testcase_id for matching in match_result.matchings
+    )
+    for testcase_codename in dataset.testcases.keys():
+        testcase_id = dataset.testcases[testcase_codename].id
+        if testcase_id not in evaluated_testcase_ids:
+            yield (
+                ESOperation(ESOperation.MATCH, match.id, dataset.id, testcase_codename),
+                priority,
+                match.timestamp,
+            )
 
 def submission_get_operations(submission_result, submission, dataset):
     """Generate all operations originating from a submission for a given
@@ -493,6 +541,7 @@ class ESOperation(QueueItem):
     # TODO: implement function around user tests for matching
     COMPILATION = "compile"
     EVALUATION = "evaluate"
+    MATCH = "match"
     USER_TEST_COMPILATION = "compile_test"
     USER_TEST_EVALUATION = "evaluate_test"
     USER_TEST_MATCH = "match_test"
@@ -550,6 +599,14 @@ class ESOperation(QueueItem):
         """
         return self.type_ == ESOperation.COMPILATION or \
             self.type_ == ESOperation.EVALUATION
+
+    def for_match(self):
+        """Return if the operation is for a match.
+
+        return (bool): True if this operation is for a match.
+
+        """
+        return self.type_ == ESOperation.MATCH
 
     def to_dict(self):
         return {
