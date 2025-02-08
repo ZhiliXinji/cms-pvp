@@ -41,15 +41,35 @@ from sqlalchemy.exc import IntegrityError
 
 from cms import ServiceCoord, get_service_shards
 from cmscommon.datetime import make_timestamp
-from cms.db import SessionGen, Digest, Dataset, Evaluation, Submission, \
-    SubmissionResult, Testcase, UserTest, UserTestResult, get_submissions, \
-    get_submission_results, get_datasets_to_judge
+from cms.db import (
+    SessionGen,
+    Digest,
+    Dataset,
+    Evaluation,
+    Submission,
+    Match,
+    MatchResult,
+    SubmissionResult,
+    Testcase,
+    UserTest,
+    UserTestResult,
+    get_submissions,
+    get_submission_results,
+    get_datasets_to_judge,
+)
 from cms.grading.Job import JobGroup
 from cms.io import Executor, TriggeredService, rpc_method
-from .esoperations import ESOperation, get_relevant_operations, \
-    get_submissions_operations, get_user_tests_operations, \
-    submission_get_operations, submission_to_evaluate, \
-    user_test_get_operations
+from .esoperations import (
+    ESOperation,
+    get_relevant_operations,
+    get_submissions_operations,
+    get_user_tests_operations,
+    submission_get_operations,
+    submission_to_evaluate,
+    user_test_get_operations,
+    match_get_operations,
+    match_to_evaluate,
+)
 from .flushingdict import FlushingDict
 from .workerpool import WorkerPool
 
@@ -313,7 +333,14 @@ class EvaluationService(TriggeredService):
             for operation, priority, timestamp in submission_get_operations(
                     submission_result, submission, dataset):
                 number_of_operations += 1
-                if self.enqueue(operation, priority, timestamp):
+
+                # NOTE: In PvP mode, dummy ESOperations of Evaluation type
+                # are created for storing outcomes. These operations should
+                # not be enqueued.
+                if (
+                    submission.dataset.task_type != "pvp"
+                    or operation.type_ == ESOperation.COMPILATION
+                ) and self.enqueue(operation, priority, timestamp):
                     new_operations += 1
 
             # If we got 0 operations, but the submission result is to
@@ -326,6 +353,40 @@ class EvaluationService(TriggeredService):
                 submission_result.set_evaluation_outcome()
                 submission_result.sa_session.commit()
                 self.evaluation_ended(submission_result)
+
+        return new_operations
+
+    def match_enqueue_operations(self, match: Match):
+        """Push in queue the operations required by a PvP match.
+
+        match (Match): a match.
+
+        return (int): the number of actually enqueued operations.
+
+        """
+        new_operations = 0
+        for dataset in get_datasets_to_judge(match.task):
+            match_result = match.get_result(dataset)
+            number_of_operations = 0
+            for operation, priority, timestamp in match_get_operations(
+                match_result, match, dataset
+            ):
+                number_of_operations += 1
+                if self.enqueue(operation, priority, timestamp):
+                    new_operations += 1
+
+            # If we got 0 operations, but the match result is to
+            # evaluate, it means that we just need to finalize the
+            # evaluation.
+            if number_of_operations == 0 and match_to_evaluate(match_result):
+                logger.info(
+                    "Result %d(%d) has already all matchings, finalizing it.",
+                    match.id,
+                    dataset.id,
+                )
+                match_result.set_evaluation_outcome()
+                match_result.sa_session.commit()
+                self.match_ended(match_result)
 
         return new_operations
 
@@ -351,6 +412,8 @@ class EvaluationService(TriggeredService):
         """Look in the database for submissions that have not been compiled or
         evaluated for no good reasons. Put the missing operation in
         the queue.
+
+        TODO: add MATCH operations.
 
         """
         counter = 0
@@ -518,6 +581,14 @@ class EvaluationService(TriggeredService):
                                      "in the database.", object_id)
                         continue
                     object_result = object_.get_result_or_create(dataset)
+                elif type_ in [ESOperation.MATCH]:
+                    object_ = Match.get_from_id(object_id, session)
+                    if object_ is None:
+                        logger.error(
+                            "Could not find match %d in the database.", object_id
+                        )
+                        continue
+                    object_result = object_.get_result_or_create(dataset)
                 else:
                     object_ = UserTest.get_from_id(object_id, session)
                     if object_ is None:
@@ -563,6 +634,12 @@ class EvaluationService(TriggeredService):
                         (object_id, dataset_id), session)
                     if submission_result.evaluated():
                         self.evaluation_ended(submission_result)
+                elif type_ == ESOperation.MATCH:
+                    match_result = MatchResult.get_from_id(
+                        (object_id, dataset_id), session
+                    )
+                    if match_result.evaluated():
+                        self.match_ended(match_result)
                 elif type_ == ESOperation.USER_TEST_COMPILATION:
                     user_test_result = UserTestResult.get_from_id(
                         (object_id, dataset_id), session)
@@ -579,7 +656,7 @@ class EvaluationService(TriggeredService):
         """Write to the DB the results for one object and type.
 
         session (Session): the DB session to use.
-        object_result (SubmissionResult|UserTestResult): the DB object
+        object_result (SubmissionResult|UserTestResult|MatchResult): the DB object
             for the result referred to all the ESOperations.
         operation_results ([(ESOperation, WorkerResult)]): all the
             operations and corresponding worker results we have
@@ -609,7 +686,7 @@ class EvaluationService(TriggeredService):
         """Write to the DB a single result.
 
         session (Session): the DB session to use.
-        object_result (SubmissionResult|UserTestResult): the DB object
+        object_result (SubmissionResult|UserTestResult|MatchResult): the DB object
             for the operation (and for the result).
         operation (ESOperation): the operation for which we have the result.
         result (WorkerResult): the result from the worker.
@@ -642,7 +719,32 @@ class EvaluationService(TriggeredService):
                             object_result.submission)
                 else:
                     object_result.evaluation_tries += 1
-
+        elif operation.type_ == ESOperation.MATCH:
+            if result.job_success:
+                result.job.to_match(object_result)
+            else:
+                if (
+                    result.job.plus is not None
+                    and result.job.plus.get("tombstone") is True
+                ):
+                    # TODO: more precise method to judge tombstone
+                    # executable_digests = [
+                    #     e.digest for e in object_result.executables.values()
+                    # ]
+                    # if Digest.TOMBSTONE in executable_digests:
+                    logger.info(
+                        "Match %d's compilation on dataset "
+                        "%d has been invalidated since the "
+                        "executable was the tombstone",
+                        object_result.match_id,
+                        object_result.dataset_id,
+                    )
+                    # TODO
+                    # with session.begin_nested():
+                    #     object_result.invalidate_compilation()
+                    # self.submission_enqueue_operations(object_result.submission)
+                else:
+                    object_result.evaluation_tries += 1
         elif operation.type_ == ESOperation.USER_TEST_COMPILATION:
             if result.job_success:
                 result.job.to_user_test(object_result)
@@ -654,6 +756,10 @@ class EvaluationService(TriggeredService):
                 result.job.to_user_test(object_result)
             else:
                 object_result.evaluation_tries += 1
+
+        elif operation.type_ == ESOperation.USER_TEST_MATCH:
+            # TODO
+            pass
 
         else:
             logger.error("Invalid operation type %r.", operation.type_)
@@ -723,25 +829,33 @@ class EvaluationService(TriggeredService):
         # otherwise the ScoringService wouldn't receive the updated
         # submission.
         if submission_result.evaluated():
-            logger.info("Submission %d(%d) was evaluated successfully.",
-                        submission_result.submission_id,
-                        submission_result.dataset_id)
+            logger.info(
+                "Submission %d(%d) was evaluated successfully.",
+                submission_result.submission_id,
+                submission_result.dataset_id,
+            )
             self.scoring_service.new_evaluation(
                 submission_id=submission_result.submission_id,
-                dataset_id=submission_result.dataset_id)
+                dataset_id=submission_result.dataset_id,
+            )
 
         # Evaluation unsuccessful, we log the error.
         else:
-            logger.warning("Worker failed when evaluating submission "
-                           "%d(%d).",
-                           submission_result.submission_id,
-                           submission_result.dataset_id)
-            if submission_result.evaluation_tries >= \
-                    EvaluationService.MAX_EVALUATION_TRIES:
-                logger.error("Maximum number of failures reached for the "
-                             "evaluation of submission %d(%d).",
-                             submission_result.submission_id,
-                             submission_result.dataset_id)
+            logger.warning(
+                "Worker failed when evaluating submission %d(%d).",
+                submission_result.submission_id,
+                submission_result.dataset_id,
+            )
+            if (
+                submission_result.evaluation_tries
+                >= EvaluationService.MAX_EVALUATION_TRIES
+            ):
+                logger.error(
+                    "Maximum number of failures reached for the "
+                    "evaluation of submission %d(%d).",
+                    submission_result.submission_id,
+                    submission_result.dataset_id,
+                )
 
         # Enqueue next steps to be done (e.g., if evaluation failed).
         self.submission_enqueue_operations(submission)
@@ -821,6 +935,49 @@ class EvaluationService(TriggeredService):
         # Enqueue next steps to be done (e.g., if evaluation failed).
         self.user_test_enqueue_operations(user_test)
 
+    def match_ended(self, match_result):
+        """Actions to be performed when we have a match that has been
+        evaluated. In particular: we inform ScoringService on success,
+        we requeue on failure.
+
+        match_result (MatchResult): the match result.
+
+        """
+        match = match_result.match
+
+        # Evaluation successful, we inform ScoringService so it can
+        # update the score. We need to commit the session beforehand,
+        # otherwise the ScoringService wouldn't receive the updated
+        # submission.
+        if match_result.evaluated():
+            logger.info(
+                "Match %d(%d) was evaluated successfully.",
+                match_result.match_id,
+                match_result.dataset_id,
+            )
+            # NOTE: in PvP mode, scoring_service should be called manually.
+            # self.scoring_service.new_evaluation(
+            #     match_id=match_result.match_id,
+            #     dataset_id=match_result.dataset_id)
+
+        # Evaluation unsuccessful, we log the error.
+        else:
+            logger.warning(
+                "Worker failed when evaluating match %d(%d).",
+                match_result.match_id,
+                match_result.dataset_id,
+            )
+            if match_result.evaluation_tries >= EvaluationService.MAX_EVALUATION_TRIES:
+                logger.error(
+                    "Maximum number of failures reached for the "
+                    "evaluation of match %d(%d).",
+                    match_result.match_id,
+                    match_result.dataset_id,
+                )
+
+        # Enqueue next steps to be done (e.g., if evaluation failed).
+        self.match_enqueue_operations(match)
+
     @rpc_method
     def new_submission(self, submission_id):
         """This RPC prompts ES of the existence of a new
@@ -839,6 +996,24 @@ class EvaluationService(TriggeredService):
 
             self.submission_enqueue_operations(submission)
 
+            if submission.dataset.task_type == "pvp":
+                # In PvP mode, dummy evaluaions are created for storing outcomes.
+                # These evaluaions should not be enqueued.
+                submission_result = submission.get_result_or_create()
+                for _, testcase in submission.dataset.testcases:
+                    submission_result.evaluations += [
+                        Evaluation(
+                            text=self.text,
+                            outcome=0.0,
+                            # execution_time=self.plus.get('execution_time'),
+                            # execution_wall_clock_time=self.plus.get(
+                            #     'execution_wall_clock_time'),
+                            # execution_memory=self.plus.get('execution_memory'),
+                            # evaluation_shard=self.shard,
+                            # evaluation_sandbox=":".join(self.sandboxes),
+                            testcase=testcase,
+                        )
+                    ]
             session.commit()
 
     @rpc_method
@@ -929,8 +1104,7 @@ class EvaluationService(TriggeredService):
             # Then we get all relevant operations, and we remove them
             # both from the queue and from the pool (i.e., we ignore
             # the workers involved in those operations).
-            operations = get_relevant_operations(
-                level, submissions, dataset_id)
+            operations = get_relevant_operations(level, submissions, dataset_id)
             for operation in operations:
                 try:
                     self.dequeue(operation)
