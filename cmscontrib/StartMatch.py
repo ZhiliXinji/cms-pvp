@@ -104,6 +104,12 @@ def mark_match_submissions(task_name):
             submission = get_last_submission(session, p, task)
             if submission:
                 submission.pvp_batch = task.pvp_batch
+                result = submission.get_result()
+                result.score = None
+                result.score_details = None
+                result.public_score = None
+                result.public_score_details = None
+                result.ranking_score_details = None
         session.commit()
     return True
 
