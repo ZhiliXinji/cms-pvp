@@ -144,26 +144,23 @@ class Job:
     def export_to_dict(self):
         """Return a dict representing the job."""
         res = {
-            'operation': (self.operation.to_dict()
-                          if self.operation is not None
-                          else None),
-            'task_type': self.task_type,
-            'task_type_parameters': self.task_type_parameters,
-            'language': self.language,
-            'multithreaded_sandbox': self.multithreaded_sandbox,
-            'shard': self.shard,
-            'keep_sandbox': self.keep_sandbox,
-            'sandboxes': self.sandboxes,
-            'info': self.info,
-            'success': self.success,
-            'text': self.text,
-            'files': dict((k, v.digest)
-                          for k, v in self.files.items()),
-            'managers': dict((k, v.digest)
-                             for k, v in self.managers.items()),
-            'executables': dict((k, v.digest)
-                                for k, v in self.executables.items()),
-            }
+            "operation": (
+                self.operation.to_dict() if self.operation is not None else None
+            ),
+            "task_type": self.task_type,
+            "task_type_parameters": self.task_type_parameters,
+            "language": self.language,
+            "multithreaded_sandbox": self.multithreaded_sandbox,
+            "shard": self.shard,
+            "keep_sandbox": self.keep_sandbox,
+            "sandboxes": self.sandboxes,
+            "info": self.info,
+            "success": self.success,
+            "text": self.text,
+            "files": dict((k, v.digest) for k, v in self.files.items()),
+            "managers": dict((k, v.digest) for k, v in self.managers.items()),
+            "executables": dict((k, v.digest) for k, v in self.executables.items()),
+        }
         return res
 
     @staticmethod
@@ -183,6 +180,8 @@ class Job:
             return CompilationJob.import_from_dict(data)
         elif type_ == 'evaluation':
             return EvaluationJob.import_from_dict(data)
+        elif type_ == "match":
+            return MatchJob.import_from_dict(data)
         else:
             raise Exception("Couldn't import dictionary with type %s" %
                             (type_))
@@ -235,10 +234,14 @@ class Job:
             job = CompilationJob.from_submission(operation, object_, dataset)
         elif operation.type_ == ESOperation.EVALUATION:
             job = EvaluationJob.from_submission(operation, object_, dataset)
+        elif operation.type_ == ESOperation.MATCH:
+            job = MatchJob.from_match(operation, object_, dataset)
         elif operation.type_ == ESOperation.USER_TEST_COMPILATION:
             job = CompilationJob.from_user_test(operation, object_, dataset)
         elif operation.type_ == ESOperation.USER_TEST_EVALUATION:
             job = EvaluationJob.from_user_test(operation, object_, dataset)
+        elif operation.type_ == ESOperation.USER_TEST_MATCH:
+            job = MatchJob.from_user_test(operation, object_, dataset)
         return job
 
 
@@ -672,14 +675,6 @@ class MatchJob(Job):
     memory_limit. Output data (filled by the Worker): success,
     outcome, text, user_output, executables, text, plus. Metadata:
     only_execution, get_output.
-
-    NOTE: This is a subclass of Job, but below we override the type settings:
-    - language ([(string|None)]) is a list of languages, one for each submission,
-      not (string|None)
-    - executables ([({string: Executable}|None)]) is a list of executables,
-      one for each submission, not {string: Executable}|None
-    - files ([({string: File}|None)]) is a list of executables,
-      one for each submission, not {string: Executable}|None
     """
 
     def __init__(
@@ -692,10 +687,13 @@ class MatchJob(Job):
         sandboxes=None,
         info=None,
         language=None,
+        language_list=None,
         multithreaded_sandbox=False,
         files=None,
+        files_list=None,
         managers=None,
         executables=None,
+        executables_list=None,
         input=None,
         output=None,
         time_limit=None,
@@ -712,8 +710,12 @@ class MatchJob(Job):
 
         See base class for the remaining arguments.
 
-        languages ({}|None): the language used in each executable.
-            Original `language` parameter will be ignored.
+        language_list ({}|None): the language used in each executable.
+        NOTE: Original `language` parameter will be ignored.
+        executables_list ([({string: Executable}|None)]) is a list of executables,
+        NOTE: one for each submission. Original `executables` will be ignored.
+        files_list ([({string: File}|None)]) is a list of files,
+        NOTE: one for each submission. Original `files_list` will be ignored.
         input (string|None): digest of the input file.
         output (string|None): digest of the output file.
         time_limit (float|None): user time limit in seconds.
@@ -758,13 +760,18 @@ class MatchJob(Job):
         self.plus = plus
         self.only_execution = only_execution
         self.get_output = get_output
+        self.language_list = language_list
+        self.executables_list = executables_list
+        self.files_list = files_list
 
     def export_to_dict(self):
         res = Job.export_to_dict(self)
         res.update(
             {
-                "type": "evaluation",
-                "language": self.language,
+                "type": "match",
+                "language_list": self.language_list,
+                "executables_list": self.executables_list,
+                "files_list": self.files_list,
                 "input": self.input,
                 "output": self.output,
                 "time_limit": self.time_limit,
@@ -791,7 +798,7 @@ class MatchJob(Job):
         return (MatchJob): the job.
 
         """
-        if operation.type_ != ESOperation.EVALUATION:
+        if operation.type_ != ESOperation.MATCH:
             logger.error(
                 "Programming error: asking for a match job, but the operation is %s.",
                 operation.type_,
@@ -832,11 +839,11 @@ class MatchJob(Job):
             operation=operation,
             task_type=dataset.task_type,
             task_type_parameters=dataset.task_type_parameters,
-            language=[match.submission1.language, match.submission2.language],
+            language_list=[match.submission1.language, match.submission2.language],
             multithreaded_sandbox=multithreaded,
-            files=[dict(match.submission1.files), dict(match.submission2.files)],
+            files_list=[dict(match.submission1.files), dict(match.submission2.files)],
             managers=dict(dataset.managers),
-            executables=[
+            executables_list=[
                 dict(submission_result1.executables),
                 dict(submission_result2.executables),
             ],
@@ -905,6 +912,8 @@ class JobGroup:
             # object exists there), which thus acts as a cache.
             if operation.for_submission():
                 object_ = Submission.get_from_id(operation.object_id, session)
+            elif operation.for_match():
+                object_ = Match.get_from_id(operation.object_id, session)
             else:
                 object_ = UserTest.get_from_id(operation.object_id, session)
             dataset = Dataset.get_from_id(operation.dataset_id, session)
