@@ -79,6 +79,14 @@ def get_last_match(session, participation1, participation2, task):
     )
     return last_match
 
+def maybe_send_notification(evaluation_id):
+    """Non-blocking attempt to notify a running SS of the evaluation"""
+    ss = RemoteServiceClient(ServiceCoord("ScoringService", 0))
+    ss.connect()
+    ss.new_match(evaluation_id=evaluation_id)
+    ss.disconnect()
+
+
 def update_score(session, task, participation, testcase, score):
     submission = get_match_submission(session, participation, task)
 
@@ -91,6 +99,7 @@ def update_score(session, task, participation, testcase, score):
 
     evaluation = submission_result.get_evaluation(testcase)
     evaluation.score = score
+    maybe_send_notification(evaluation.id)
 
     session.commit()
 
