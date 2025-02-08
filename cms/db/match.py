@@ -111,6 +111,48 @@ class Match(Base):
 
     batch = Column(Integer, nullable=True)
 
+    def get_result(self, dataset=None):
+        """Return the result associated to a dataset.
+
+        dataset (Dataset|None): the dataset for which the caller wants
+            the submission result; if None, the active one is used.
+
+        return (MatchResult|None): the submission result
+            associated to this submission and the given dataset, if it
+            exists in the database, otherwise None.
+
+        """
+        if dataset is not None:
+            # Use IDs to avoid triggering a lazy-load query.
+            assert self.task_id == dataset.task_id
+            dataset_id = dataset.id
+        else:
+            dataset_id = self.task.active_dataset_id
+
+        return MatchResult.get_from_id((self.id, dataset_id), self.sa_session)
+
+    def get_result_or_create(self, dataset=None):
+        """Return and, if necessary, create the result for a dataset.
+
+        dataset (Dataset|None): the dataset for which the caller wants
+            the match result; if None, the active one is used.
+
+        return (MatchResult): the match result associated to
+            the this match and the given dataset; if it
+            does not exists, a new one is created.
+
+        """
+        if dataset is None:
+            dataset = self.task.active_dataset
+
+        match_result = self.get_result(dataset)
+
+        if match_result is None:
+            match_result = MatchResult(match=self, dataset=dataset)
+
+        return match_result
+
+
 class MatchResult(Base):
     """Class to store a match result.
     TODO: Need to complete.
@@ -142,6 +184,8 @@ class MatchResult(Base):
     dataset = relationship(Dataset)
 
     # TODO: Need to complete like submission_result.
+    # Number of failures during evaluation.
+    evaluation_tries = Column(Integer, nullable=False, default=0)
 
     # Match details. It's a JSON-like structure containing information
     # about the match.
@@ -168,11 +212,6 @@ class MatchResult(Base):
 
     evaluation_outcome = Column(Enum("ok", name="evaluation_outcome"), nullable=True)
 
-    # Performance points of both sides, inside [0.0, 1.0].
-    # XXX: Will be changed to an array when not just PvP, like 5v5.
-    score1 = Column(Float, nullable=True)
-    score2 = Column(Float, nullable=True)
-
     def evaluated(self):
         """Return whether the submission result has been evaluated.
 
@@ -181,20 +220,16 @@ class MatchResult(Base):
         """
         return self.evaluation_outcome is not None
 
-    def scored(self):
-        """Return whether the submission result has been scored.
-
-        return (bool): True if scored, False otherwise.
-
-        """
-        return self.score1 is not None or self.score2 is not None
+    def set_evaluation_outcome(self):
+        """Set the evaluation outcome (always ok now)."""
+        self.evaluation_outcome = "ok"
 
     def get_status(self):
         """Return the status of this object."""
         if not self.evaluated():
             return MatchResult.EVALUATING
-        elif not self.scored():
-            return MatchResult.SCORING
+        # elif not self.scored():
+        #     return MatchResult.SCORING
         else:
             return MatchResult.SCORED
 
