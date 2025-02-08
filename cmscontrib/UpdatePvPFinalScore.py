@@ -80,7 +80,7 @@ def get_last_match(session, participation1, participation2, task):
     return last_match
 
 def update_score(session, task, participation, testcase, score):
-    submission = get_match_submission(session, task, participation)
+    submission = get_match_submission(session, participation, task)
 
     if not submission:
         return False

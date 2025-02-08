@@ -47,7 +47,7 @@ def get_last_submission(session, participation, task):
     )
     return last_submission
 
-def get_match_submission(session, task, participation):
+def get_match_submission(session, participation, task):
     match_submission = (
         session.query(Submission)
         .join(Submission.participation)
