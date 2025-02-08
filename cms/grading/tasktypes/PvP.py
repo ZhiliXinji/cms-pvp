@@ -42,7 +42,7 @@ from cms.grading.steps import (
 from cms.grading.tasktypes import check_files_number
 from . import (
     TaskType,
-    check_executables_number,
+    set_configuration_error,
     check_manager_present,
     create_sandbox,
     delete_sandbox,
@@ -239,15 +239,33 @@ class PvP(TaskType):
         # PvP means 2 users.
         players = 2
 
-        # XXX: Consider better implementation.
+        def check_executables_number(job, n):
+            def fail():
+                msg = (
+                    "submission contains %d executables, exactly %d are expected; "
+                    "consider invalidating compilations."
+                )
+                set_configuration_error(job, msg, len(job.executables_list), n)
+
+            if len(job.executables_list) != n:
+                fail()
+                return False
+            for executables in job.executables_list:
+                if len(executables) != 1:
+                    fail()
+                    return False
+            return True
+
         if not check_executables_number(job, players):
             return
 
         indices = range(players)
 
-        executable_filenames = [next(iter(job.executables[i].keys())) for i in indices]
+        executable_filenames = [
+            next(iter(job.executables_list[i].keys())) for i in indices
+        ]
         executable_digests = [
-            job.executables[i][executable_filenames[i]].digest
+            job.executables_list[i][executable_filenames[i]].digest
             for i in executable_filenames
         ]
 
@@ -336,7 +354,7 @@ class PvP(TaskType):
         )
 
         # Start the user submissions compiled with the stub.
-        languages = [get_language(job.language[i]) for i in indices]
+        languages = [get_language(job.language_list[i]) for i in indices]
         main = [
             (
                 self.STUB_BASENAME
