@@ -59,6 +59,20 @@ class Match(Base):
     # Auto increment primary key.
     id = Column(Integer, primary_key=True)
 
+    # Task of the match, gotten from submission1.task
+    task_id = Column(
+        Integer,
+        ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    task = relationship(
+        Task,
+        ForeignKey(Submission.task, onupdate="CASCADE", ondelete="CASCADE"),
+        foreign_keys=[task_id],
+        uselist=False,
+    )
+
     # Store two relevant submission
     submission1_id = Column(
         Integer,
@@ -68,7 +82,7 @@ class Match(Base):
     )
     submission1 = relationship(
         Submission,
-        foreign_keys=[submission1_id],
+        foreign_keys=[submission1_id, task],
         uselist=False,
     )
     submission2_id = Column(
@@ -82,15 +96,6 @@ class Match(Base):
         foreign_keys=[submission2_id],
         uselist=False,
     )
-
-    # Task of the match, gotten from submission1.task
-    task_id = Column(
-        Integer,
-        ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    task = association_proxy("submission1", "task")
 
     # Time of the match.
     timestamp = Column(DateTime, nullable=False)
