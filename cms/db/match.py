@@ -304,7 +304,4 @@ class Matching(Base):
         """Return the codename of the testcase."""
         return self.testcase.codename
 
-@listens_for(Match, "after_insert")
-def create_match_result(mapper, connection, target):
-    connection.execute(insert(MatchResult).values(match_id=target.id))
 
