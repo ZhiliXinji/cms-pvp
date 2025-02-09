@@ -197,9 +197,9 @@ class TaskType(metaclass=ABCMeta):
         """
         pass
 
-    @abstractmethod
     def evaluate(self, job, file_cacher):
-        """Try to evaluate the given EvaluationJob.
+        """Try to evaluate the given Evaluation. This is not neccessary
+        for some task types, so the default implementation is a no-op.
 
         Set job.success to True when *our infrastracture* is successful
         (i.e. the actual program may score or not), and to False when
