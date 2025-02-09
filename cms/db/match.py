@@ -87,11 +87,11 @@ class Match(Base):
 
     @hybrid_property
     def task_id(self):
-        return self.submission1.task_id if self.submission1 else None
+        return self.task.id if self.task else None
 
     @task_id.expression
     def task_id(cls):
-        return Submission.task_id
+        return cls.submission1.task_id
 
     task = relationship(
         Task,
