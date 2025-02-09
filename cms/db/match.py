@@ -84,12 +84,7 @@ class Match(Base):
     )
 
     # Task of the match, gotten from submission1.task
-    task_id = Column(
-        Integer,
-        ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    task_id = association_proxy("submission1", "task_id")
     task = association_proxy("submission1", "task")
 
     # Time of the match.
