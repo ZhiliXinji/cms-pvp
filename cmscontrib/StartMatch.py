@@ -75,6 +75,8 @@ def add_match(session, task, timestamp, p1, p2):
         batch=task.pvp_batch,
     )
 
+    # print("----", match.task)
+
     session.add(match)
     session.commit()
 
@@ -104,7 +106,7 @@ def mark_match_submissions(task_name):
             submission = get_last_submission(session, p, task)
             if submission:
                 submission.pvp_batch = task.pvp_batch
-                result = submission.get_result()
+                result = submission.get_result_or_create()
                 result.score = None
                 result.score_details = None
                 result.public_score = None
