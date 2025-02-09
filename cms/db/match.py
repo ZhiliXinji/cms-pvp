@@ -27,12 +27,12 @@
 from sqlalchemy import Boolean
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import relationship, Session
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.schema import Column, ForeignKey, ForeignKeyConstraint, UniqueConstraint
 from sqlalchemy.types import Integer, Float, String, Unicode, DateTime, Enum, BigInteger
 from sqlalchemy.event import listens_for
 from sqlalchemy.sql import insert
-from sqlalchemy.ext.hybrid import hybrid_property
 
 from cmscommon.datetime import make_datetime
 from . import (
@@ -84,23 +84,13 @@ class Match(Base):
     )
 
     # Task of the match, gotten from submission1.task
-
-    @hybrid_property
-    def task_id(self):
-        return self.task.id if self.task else None
-
-    @task_id.expression
-    def task_id(cls):
-        return cls.submission1.task_id
-
-    task = relationship(
-        Task,
-        secondary=Submission.__tablename__,
-        primaryjoin="and_(Match.submission1_id == Submission.id, Match.submission2_id == Submission.id)",
-        secondaryjoin="Task.id == Submission.task_id",
-        uselist=False,
-        viewonly=True,
+    task_id = Column(
+        Integer,
+        ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
+    task = association_proxy("submission1", "task")
 
     # Time of the match.
     timestamp = Column(DateTime, nullable=False)
