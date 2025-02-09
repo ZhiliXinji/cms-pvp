@@ -32,6 +32,7 @@ from sqlalchemy.schema import Column, ForeignKey, ForeignKeyConstraint, UniqueCo
 from sqlalchemy.types import Integer, Float, String, Unicode, DateTime, Enum, BigInteger
 from sqlalchemy.event import listens_for
 from sqlalchemy.sql import insert
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from cmscommon.datetime import make_datetime
 from . import (
@@ -83,12 +84,15 @@ class Match(Base):
     )
 
     # Task of the match, gotten from submission1.task
-    task_id = Column(
-        Integer,
-        ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+
+    @hybrid_property
+    def task_id(self):
+        return self.submission1.task_id if self.submission1 else None
+
+    @task_id.expression
+    def task_id(cls):
+        return Submission.task_id
+
     task = relationship(
         Task,
         secondary=Submission.__tablename__,
