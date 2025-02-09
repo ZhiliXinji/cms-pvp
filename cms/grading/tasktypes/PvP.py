@@ -448,7 +448,7 @@ class PvP(TaskType):
 
         # Otherwise, we use the manager to obtain the outcome.
         else:
-            outcome, text = extract_outcome_and_text(sandbox_mgr)
+            outcome, text = extract_outcome_and_text(sandbox_mgr, PvP=True)
 
         # If asked so, save the output file with additional information,
         # provided that it exists.
