@@ -30,8 +30,19 @@ import logging
 
 from sqlalchemy import case, literal
 
-from cms.db import Dataset, Evaluation, Submission, SubmissionResult, \
-    Task, Testcase, UserTest, UserTestResult
+from cms.db import (
+    Dataset,
+    Evaluation,
+    Submission,
+    SubmissionResult,
+    Task,
+    Testcase,
+    UserTest,
+    UserTestResult,
+    Matching,
+    Match,
+    MatchResult,
+)
 from cms.io import PriorityQueue, QueueItem
 
 
@@ -58,6 +69,12 @@ FILTER_SUBMISSION_RESULTS_TO_EVALUATE = (
     (SubmissionResult.evaluation_tries < MAX_EVALUATION_TRIES)
 )
 
+FILTER_MATCHING_DATASETS_TO_JUDGE = (Dataset.id == Task.active_dataset_id) | (
+    Dataset.autojudge.is_(True)
+)
+FILTER_MATCHING_RESULTS_TO_EVALUATE = (~MatchResult.filter_evaluated()) & (
+    MatchResult.evaluation_tries < MAX_EVALUATION_TRIES
+)
 
 FILTER_USER_TEST_DATASETS_TO_JUDGE = (
     (Dataset.id == Task.active_dataset_id) |
@@ -437,6 +454,81 @@ def get_submissions_operations(session, contest_id=None):
 
     return operations
 
+def get_match_operations(session, contest_id=None):
+    """Return all the operations to do for matchings in the contest.
+
+    session (Session): the database session to use.
+    contest_id (int|None): the contest for which we want the operations.
+        If none, get operations for any contest.
+
+    return ([ESOperation, float, int]): a list of operation, timestamp
+        and priority.
+
+    """
+
+    operations = []
+
+    if contest_id is None:
+        contest_filter = literal(True)
+    else:
+        contest_filter = Task.contest_id == contest_id
+
+    # Retrieve all the match operations for a dataset to
+    # judge. Again we need to pick all tuples (matching, dataset,
+    # testcase) such that there is no evaluation for them, and to do
+    # so we take the cartesian product with the testcases and later
+    # ensure that there is no evaluation associated.
+    to_evaluate = (
+        session.query(MatchResult)
+        .join(MatchResult.dataset)
+        .join(MatchResult.match)
+        .join(Match.task)
+        .join(Dataset.testcases)
+        .outerjoin(
+            Matching,
+            (Matching.match_id == Match.id)
+            & (Matching.dataset_id == Dataset.id)
+            & (Matching.testcase_id == Testcase.id),
+        )
+        .filter(
+            contest_filter
+            & (FILTER_MATCHING_DATASETS_TO_JUDGE)
+            & (FILTER_MATCHING_RESULTS_TO_EVALUATE)
+            & (Matching.id.is_(None))
+        )
+        .with_entities(
+            Matching.id,
+            Dataset.id,
+            case(
+                [
+                    (
+                        Dataset.id != Task.active_dataset_id,
+                        literal(PriorityQueue.PRIORITY_EXTRA_LOW),
+                    ),
+                    (
+                        MatchResult.evaluation_tries == 0,
+                        literal(PriorityQueue.PRIORITY_MEDIUM),
+                    ),
+                ],
+                else_=literal(PriorityQueue.PRIORITY_LOW),
+            ),
+            Match.timestamp,
+            Testcase.codename,
+        )
+        .all()
+    )
+
+    for data in to_evaluate:
+        matching_id, dataset_id, priority, timestamp, codename = data
+        operations.append(
+            (
+                ESOperation(ESOperation.MATCH, matching_id, dataset_id, codename),
+                priority,
+                timestamp,
+            )
+        )
+
+    return operations
 
 def get_user_tests_operations(session, contest_id=None):
     """Return all the operations to do for user tests in the contest.
