@@ -717,8 +717,13 @@ class YamlLoader(ContestLoader, TaskLoader, UserLoader, TeamLoader):
                                            "are 'std_io' and 'fifo_io'. "
                                            "Ignored.")
                             io_type = None
-                    logger.info("Task type Communication")
-                    args["task_type"] = "Communication"
+                    # If pvp is set, then the task type is pvp
+                    if conf.get("pvp", False):
+                        logger.info("Task type PvP")
+                        args["task_type"] = "PvP"
+                    else:  # otherwise, the task type is Communication
+                        logger.info("Task type Communication")
+                        args["task_type"] = "Communication"
                     args["task_type_parameters"] = \
                         [num_processes, "alone", io_type or "std_io"]
                     digest = self.file_cacher.put_file_from_path(
