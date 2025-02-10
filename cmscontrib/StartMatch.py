@@ -87,6 +87,7 @@ def add_match(session, task, timestamp, p1, p2):
     match = Match(
         submission1=s1,
         submission2=s2,
+        task=task,
         timestamp=make_datetime(timestamp),
         batch=task.pvp_batch,
     )

@@ -83,9 +83,17 @@ class Match(Base):
         uselist=False,
     )
 
-    # Task of the match, gotten from submission1.task
-    task_id = association_proxy("submission1", "task_id")
-    task = association_proxy("submission1", "task")
+    # Task of the matc
+    task_id = Column(
+        Integer,
+        ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    task = relationship(
+        Task,
+        uselist=False,
+    )
 
     # Time of the match.
     timestamp = Column(DateTime, nullable=False)
