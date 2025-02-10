@@ -22,16 +22,30 @@ import argparse
 import sys
 import time
 import random
+import logging
 
 from cms import utf8_decoder, ServiceCoord
-from cms.db import SessionGen, Task, Submission, Participation, File, Match
+from cms.db import (
+    SessionGen,
+    Task,
+    Submission,
+    Participation,
+    File,
+    Match,
+    SubmissionResult,
+)
 from cmscommon.datetime import make_datetime
 from cms.io import RemoteServiceClient
 
+logger = logging.getLogger(__name__)
+
+
 def maybe_send_notification(match_id):
     """Non-blocking attempt to notify a running ES of the submission"""
+
     rs = RemoteServiceClient(ServiceCoord("EvaluationService", 0))
     rs.connect()
+    logger.info("Sending notification for match %d", match_id)
     rs.new_match(match_id=match_id)
     rs.disconnect()
 
@@ -40,8 +54,10 @@ def get_last_submission(session, participation, task):
         session.query(Submission)
         .join(Submission.participation)
         .join(Submission.task)
+        .join(Submission.results)
         .filter(Participation.id == participation.id)
         .filter(Task.id == task.id)
+        .filter(SubmissionResult.filter_compilation_succeeded())
         .order_by(Submission.timestamp.desc())
         .first()
     )
