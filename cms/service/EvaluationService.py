@@ -69,6 +69,7 @@ from .esoperations import (
     user_test_get_operations,
     match_get_operations,
     match_to_evaluate,
+    get_match_operations,
 )
 from .flushingdict import FlushingDict
 from .workerpool import WorkerPool
@@ -426,6 +427,12 @@ class EvaluationService(TriggeredService):
 
             for operation, timestamp, priority in \
                     get_user_tests_operations(session, self.contest_id):
+                if self.enqueue(operation, timestamp, priority):
+                    counter += 1
+
+            for operation, timestamp, priority in get_match_operations(
+                session, self.contest_id
+            ):
                 if self.enqueue(operation, timestamp, priority):
                     counter += 1
 
@@ -988,6 +995,7 @@ class EvaluationService(TriggeredService):
 
         """
         with SessionGen() as session:
+            logger.info("New submission %d.", submission_id)
             submission = Submission.get_from_id(submission_id, session)
             if submission is None:
                 logger.error("[new_submission] Couldn't find submission "
