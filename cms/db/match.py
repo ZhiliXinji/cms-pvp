@@ -201,6 +201,11 @@ class MatchResult(Base):
 
     evaluation_outcome = Column(Enum("ok", name="evaluation_outcome"), nullable=True)
 
+    @staticmethod
+    def filter_evaluated():
+        """Return a filtering lambda for evaluated submission results."""
+        return MatchResult.evaluation_outcome.isnot(None)
+
     def evaluated(self):
         """Return whether the submission result has been evaluated.
 
