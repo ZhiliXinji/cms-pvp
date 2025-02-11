@@ -48,6 +48,7 @@ from cms.db import (
     Evaluation,
     Submission,
     Match,
+    Matching,
     MatchResult,
     SubmissionResult,
     Testcase,
@@ -625,6 +626,24 @@ class EvaluationService(TriggeredService):
                         submission_result = SubmissionResult.get_from_id(
                             (object_id, dataset_id), session)
                         submission_result.set_evaluation_outcome()
+                elif type_ == ESOperation.MATCH:
+                    if dataset_id not in num_testcases_per_dataset:
+                        num_testcases_per_dataset[dataset_id] = (
+                            session.query(func.count(Testcase.id))
+                            .filter(Testcase.dataset_id == dataset_id)
+                            .scalar()
+                        )
+                    num_matchings = (
+                        session.query(func.count(Matching.id))
+                        .filter(Matching.dataset_id == dataset_id)
+                        .filter(Matching.match_id == object_id)
+                        .scalar()
+                    )
+                    if num_matchings == num_testcases_per_dataset[dataset_id]:
+                        match_result = MatchResult.get_from_id(
+                            (object_id, dataset_id), session
+                        )
+                        match_result.set_evaluation_outcome()
 
             logger.info("Committing evaluation outcomes...")
             session.commit()
