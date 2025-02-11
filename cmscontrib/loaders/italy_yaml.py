@@ -744,7 +744,7 @@ class YamlLoader(ContestLoader, TaskLoader, UserLoader, TeamLoader):
                                 "Stub for task %s and language %s" % (
                                     task.name, lang.name))
                             args["task_type_parameters"] = (
-                                ["stub", io_type or "std_io"]
+                                ["stub", io_type or "fifo_io"]
                                 if conf.get("pvp", False)
                                 else [num_processes, "stub", io_type or "fifo_io"]
                             )
