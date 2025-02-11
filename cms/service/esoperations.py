@@ -497,7 +497,7 @@ def get_match_operations(session, contest_id=None):
             & (Matching.id.is_(None))
         )
         .with_entities(
-            Matching.id,
+            Match.id,
             Dataset.id,
             case(
                 [
@@ -518,11 +518,13 @@ def get_match_operations(session, contest_id=None):
         .all()
     )
 
+    logger.info("Finding missing matchings...%s", repr(to_evaluate))
+
     for data in to_evaluate:
-        matching_id, dataset_id, priority, timestamp, codename = data
+        match_id, dataset_id, priority, timestamp, codename = data
         operations.append(
             (
-                ESOperation(ESOperation.MATCH, matching_id, dataset_id, codename),
+                ESOperation(ESOperation.MATCH, match_id, dataset_id, codename),
                 priority,
                 timestamp,
             )
