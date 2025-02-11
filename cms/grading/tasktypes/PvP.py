@@ -419,7 +419,7 @@ class PvP(TaskType):
 
         # If just asked to execute, fill text and set dummy outcome.
         elif job.only_execution:
-            outcome = "0.0 0.0"
+            outcome = "0.5 0.5"
             text = [N_("Execution completed successfully")]
 
         # If any user sandbox detected some problem (timeout, ...),
@@ -437,10 +437,10 @@ class PvP(TaskType):
                     + human_evaluation_message(stats_user[0])[0]
                 ]
             else:
-                outcome = "0.0 0.0"
+                outcome = "0.5 0.5"
                 text = [
                     N_(
-                        "All user programs failed to execute. The info of your program is:\n"
+                        "All user programs failed to execute, so the result is considered as draw. The info of your program is:\n"
                     )
                     + human_evaluation_message(stats_user[0])[0]
                 ]
