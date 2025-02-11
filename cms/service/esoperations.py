@@ -518,7 +518,7 @@ def get_match_operations(session, contest_id=None):
         .all()
     )
 
-    logger.info("Finding missing matchings...%s", repr(to_evaluate))
+    logger.debug("Finding missing matchings...%s", repr(to_evaluate))
 
     for data in to_evaluate:
         match_id, dataset_id, priority, timestamp, codename = data
