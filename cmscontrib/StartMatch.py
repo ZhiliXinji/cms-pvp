@@ -95,6 +95,8 @@ def add_match(session, task, timestamp, p1, p2):
     # print("----", match.task)
 
     session.add(match)
+    session.add(match.get_result_or_create())
+
     session.commit()
 
     maybe_send_notification(match.id)
