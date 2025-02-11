@@ -265,8 +265,7 @@ class PvP(TaskType):
             next(iter(job.executables_list[i].keys())) for i in indices
         ]
         executable_digests = [
-            job.executables_list[i][executable_filenames[i]].digest
-            for i in executable_filenames
+            job.executables_list[i][executable_filenames[i]].digest for i in indices
         ]
 
         # Make sure the required manager is among the job managers.
