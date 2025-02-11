@@ -751,6 +751,12 @@ class MatchJob(Job):
             managers,
             executables,
         )
+        if executables_list is None:
+            executables_list = []
+        if language_list is None:
+            language_list = []
+        if files_list is None:
+            files_list = []
         self.input = input
         self.output = output
         self.time_limit = time_limit
@@ -770,8 +776,14 @@ class MatchJob(Job):
             {
                 "type": "match",
                 "language_list": self.language_list,
-                "executables_list": self.executables_list,
-                "files_list": self.files_list,
+                "executables_list": [
+                    dict((k, v.digest) for k, v in executables.items())
+                    for executables in self.executables_list
+                ],
+                "files_list": [
+                    dict((k, v.digest) for k, v in files.items())
+                    for files in self.files_list
+                ],
                 "input": self.input,
                 "output": self.output,
                 "time_limit": self.time_limit,
@@ -784,6 +796,22 @@ class MatchJob(Job):
             }
         )
         return res
+
+    @classmethod
+    def import_from_dict(cls, data):
+        """Create a MatchJob from the output of export_to_dict."""
+        if data["operation"] is not None:
+            data["operation"] = ESOperation.from_dict(data["operation"])
+        data["files_list"] = [
+            dict((k, File(k, v)) for k, v in files.items())
+            for files in data["files_list"]
+        ]
+        data["managers"] = dict((k, Manager(k, v)) for k, v in data["managers"].items())
+        data["executables_list"] = [
+            dict((k, Executable(k, v)) for k, v in executables.items())
+            for executables in data["executables_list"]
+        ]
+        return cls(**data)
 
     @staticmethod
     def from_match(operation, match: Match, dataset):
@@ -808,13 +836,12 @@ class MatchJob(Job):
         multithreaded = _is_contest_multithreaded(match.task.contest)
 
         # XXX: Use list to implement, to fit multiplayers's battle, like 5v5.
-        submission_result1 = match.submission1.get_result(dataset)
-        submission_result2 = match.submission2.get_result(dataset)
+        submission1 = match.submission1
+        submission2 = match.submission2
+        submission_result1 = submission1.get_result(dataset)
+        submission_result2 = submission2.get_result(dataset)
 
-        # This should have been created by now.
-        assert submission_result1 is not None and submission_result2 is not None
-
-        if submission_result1.task_id != submission_result2.task_id:
+        if submission1.task_id != submission2.task_id:
             logger.error(
                 "Programming error: asking for a match job, "
                 "but the submissions are from different tasks."
