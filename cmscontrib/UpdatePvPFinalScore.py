@@ -83,7 +83,7 @@ def maybe_send_notification(evaluation_id):
     """Non-blocking attempt to notify a running SS of the evaluation"""
     ss = RemoteServiceClient(ServiceCoord("ScoringService", 0))
     ss.connect()
-    ss.new_match(evaluation_id=evaluation_id)
+    ss.new_evaluation(evaluation_id=evaluation_id)
     ss.disconnect()
 
 
@@ -148,12 +148,12 @@ def update_final_score(task_name):
                 tc.id: Elo(
                     participation_ids=[p.id for p in task.contest.participations]
                 )
-                for tc in task.testcases
+                for tc in task.active_dataset.testcases.values()
             }
 
             for p in task.contest.participations:
                 if not get_match_submission(session, p, task):
-                    for tc in task.testcases:
+                    for tc in task.active_dataset.testcases.values():
                         elo[tc.id].players[p.id] = 0.0
 
             for match in matches:
@@ -164,10 +164,10 @@ def update_final_score(task_name):
                     elo[matching.testcase_id].update_scores(
                         match.submission1.participation_id,
                         match.submission2.participation_id,
-                        matching.score1,
+                        float(matching.outcome.split()[0].strip()),
                     )
 
-            for tc in task.testcases:
+            for tc in task.active_dataset.testcases.values():
                 sorted_players = sorted(
                     elo[tc.id].players.items(), key=lambda item: item[1], reverse=True
                 )
