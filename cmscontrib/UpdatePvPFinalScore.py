@@ -79,11 +79,14 @@ def get_last_match(session, participation1, participation2, task):
     )
     return last_match
 
-def maybe_send_notification(evaluation_id):
+def maybe_send_notification(submission_result):
     """Non-blocking attempt to notify a running SS of the evaluation"""
     ss = RemoteServiceClient(ServiceCoord("ScoringService", 0))
     ss.connect()
-    ss.new_evaluation(evaluation_id=evaluation_id)
+    ss.new_evaluation(
+        submission_id=submission_result.submission_id,
+        dataset_id=submission_result.dataset_id,
+    )
     ss.disconnect()
 
 
@@ -99,7 +102,6 @@ def update_score(session, task, participation, testcase, score):
 
     evaluation = submission_result.get_evaluation(testcase)
     evaluation.score = score
-    maybe_send_notification(evaluation.id)
 
     session.commit()
 
@@ -143,47 +145,56 @@ def update_final_score(task_name):
         # end round-robin
 
         # elo
-        if match_mode == "elo":
-            elo = {
+        elif match_mode == "elo":
+            competition_sys = {
                 tc.id: Elo(
                     participation_ids=[p.id for p in task.contest.participations]
                 )
-                for tc in task.active_dataset.testcases.values()
+                for tc in task.dataset.testcases.values()
             }
+        else:
+            competition_sys = {}
 
-            for p in task.contest.participations:
-                if not get_match_submission(session, p, task):
-                    for tc in task.active_dataset.testcases.values():
-                        elo[tc.id].players[p.id] = 0.0
+        participations = {}
 
-            for match in matches:
-                if match.result.get_status() != MatchResult.SCORED:
-                    print("Match %d is not scored." % match.id)
-                    return False
-                for matching in match.result.matchings:
-                    elo[matching.testcase_id].update_scores(
-                        match.submission1.participation_id,
-                        match.submission2.participation_id,
-                        float(matching.outcome.split()[0].strip()),
-                    )
+        for p in task.contest.participations:
+            submission = get_match_submission(session, p, task)
+            if not submission:
+                for tc in task.dataset.testcases.values():
+                    competition_sys[tc.id].players[p.id] = 0.0
+            else:
+                participations[p] = submission
 
-            for tc in task.active_dataset.testcases.values():
-                sorted_players = sorted(
-                    elo[tc.id].players.items(), key=lambda item: item[1], reverse=True
+        for match in matches:
+            if match.result.get_status() != MatchResult.SCORED:
+                print("Match %d is not scored." % match.id)
+                return False
+            for matching in match.result.matchings:
+                competition_sys[matching.testcase_id].update_scores(
+                    match.submission1.participation_id,
+                    match.submission2.participation_id,
+                    float(matching.outcome.split()[0].strip()),
                 )
-                for rank, (participation_id, score) in enumerate(
-                    sorted_players, start=1
-                ):
-                    new_score = 1.0 / rank
-                    update_score(
-                        session,
-                        task,
-                        session.query(Participation).get(participation_id),
-                        tc,
-                        new_score,
-                    )
 
-        # end elo
+        for tc in task.dataset.testcases.values():
+            sorted_players = sorted(
+                competition_sys[tc.id].players.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+            for rank, (participation_id, score) in enumerate(sorted_players, start=1):
+                new_score = 1.0 / rank
+                update_score(
+                    session,
+                    task,
+                    session.query(Participation).get(participation_id),
+                    tc,
+                    new_score,
+                )
+
+        for submission in participations.values():
+            # TODO: should call evaluation_ended in ES there
+            pass
 
         session.commit()
 
