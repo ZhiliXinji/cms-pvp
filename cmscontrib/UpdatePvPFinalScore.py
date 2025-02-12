@@ -21,6 +21,7 @@
 import argparse
 import sys
 import time
+import logging
 
 from cms import utf8_decoder, ServiceCoord
 from cms.db import (
@@ -37,6 +38,7 @@ from cms.io import RemoteServiceClient
 from sqlalchemy.orm import aliased
 from .StartMatch import get_match_submission
 
+logger = logging.getLogger(__name__)
 class Elo:
     players = {}
 
@@ -61,7 +63,6 @@ class Elo:
         self.players[player_b] = Elo.update_elo(
             self.players[player_b], expected_b, 1.0 - result
         )
-
 
 def get_last_match(session, participation1, participation2, task):
     sub1 = aliased(Submission)
@@ -91,6 +92,12 @@ def maybe_send_notification(submission_result):
 
 
 def update_score(session, task, participation, testcase, score):
+    logger.info(
+        "participation %d get %f on testcase %s",
+        participation.id,
+        score,
+        testcase.codename,
+    )
     submission = get_match_submission(session, participation, task)
 
     if not submission:
@@ -101,7 +108,7 @@ def update_score(session, task, participation, testcase, score):
         return False
 
     evaluation = submission_result.get_evaluation(testcase)
-    evaluation.score = score
+    evaluation.outcome = score
 
     session.commit()
 
@@ -150,7 +157,7 @@ def update_final_score(task_name):
                 tc.id: Elo(
                     participation_ids=[p.id for p in task.contest.participations]
                 )
-                for tc in task.dataset.testcases.values()
+                for tc in task.active_dataset.testcases.values()
             }
         else:
             competition_sys = {}
@@ -160,7 +167,7 @@ def update_final_score(task_name):
         for p in task.contest.participations:
             submission = get_match_submission(session, p, task)
             if not submission:
-                for tc in task.dataset.testcases.values():
+                for tc in task.active_dataset.testcases.values():
                     competition_sys[tc.id].players[p.id] = 0.0
             else:
                 participations[p] = submission
@@ -176,7 +183,7 @@ def update_final_score(task_name):
                     float(matching.outcome.split()[0].strip()),
                 )
 
-        for tc in task.dataset.testcases.values():
+        for tc in task.active_dataset.testcases.values():
             sorted_players = sorted(
                 competition_sys[tc.id].players.items(),
                 key=lambda item: item[1],
@@ -193,8 +200,9 @@ def update_final_score(task_name):
                 )
 
         for submission in participations.values():
-            # TODO: should call evaluation_ended in ES there
-            pass
+            result = submission.get_result()
+            result.invalidate_score()
+            result.set_evaluation_outcome()
 
         session.commit()
 
