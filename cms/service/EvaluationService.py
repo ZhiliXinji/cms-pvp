@@ -333,16 +333,20 @@ class EvaluationService(TriggeredService):
 
         num = 0
         with SessionGen() as session:
+            dataset = Dataset.get_from_id(operation.dataset_id, session)
+            testcase = dataset.testcases[operation.testcase_codename]
+
+            if (
+                operation.type_ not in [ESOperation.EVALUATION, ESOperation.MATCH]
+                or dataset.task_type != "PvP"
+            ):
+                return 0
             if operation.type_ == ESOperation.MATCH:
                 match = Match.get_from_id(operation.object_id, session)
                 submissions = [match.submission1, match.submission2]
             else:
                 submissions = [Submission.get_from_id(operation.object_id, session)]
 
-            dataset = Dataset.get_from_id(operation.dataset_id, session)
-            testcase = dataset.testcases[operation.testcase_codename]
-            if dataset.task_type != "PvP":
-                return 0
             for submission in submissions:
                 submission_result = submission.get_result_or_create(dataset)
                 evaluated_testcase_ids = set(
@@ -473,7 +477,7 @@ class EvaluationService(TriggeredService):
         """
         counter = 0
         with SessionGen() as session:
-            for operation, timestamp, priority in get_submissions_operations(
+            for operation, priority, timestamp in get_submissions_operations(
                 session, self.contest_id
             ):
                 # Evaluations on PvP submission are only for storing outcomes.
@@ -486,16 +490,16 @@ class EvaluationService(TriggeredService):
                     counter += 1
                     self.make_dummy_evaluations(operation)
 
-            for operation, timestamp, priority in get_user_tests_operations(
+            for operation, priority, timestamp in get_user_tests_operations(
                 session, self.contest_id
             ):
-                if self.enqueue(operation, timestamp, priority):
+                if self.enqueue(operation, priority, timestamp):
                     counter += 1
 
-            for operation, timestamp, priority in get_match_operations(
+            for operation, priority, timestamp in get_match_operations(
                 session, self.contest_id
             ):
-                if self.enqueue(operation, timestamp, priority):
+                if self.enqueue(operation, priority, timestamp):
                     counter += 1
                     self.make_dummy_evaluations(operation)
 
