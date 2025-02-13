@@ -91,7 +91,7 @@ def maybe_send_notification(submission_result):
     ss.disconnect()
 
 
-def update_score(session, task, participation, testcase, score):
+def update_score(session, task, participation, testcase, score, text):
     logger.info(
         "participation %d get %f on testcase %s",
         participation.id,
@@ -109,6 +109,7 @@ def update_score(session, task, participation, testcase, score):
 
     evaluation = submission_result.get_evaluation(testcase)
     evaluation.outcome = score
+    evaluation.text = text
 
     session.commit()
 
@@ -189,6 +190,7 @@ def update_final_score(task_name):
                 key=lambda item: item[1],
                 reverse=True,
             )
+            all_num = len(sorted_players)
             for rank, (participation_id, score) in enumerate(sorted_players, start=1):
                 new_score = 1.0 / rank
                 update_score(
@@ -197,6 +199,12 @@ def update_final_score(task_name):
                     session.query(Participation).get(participation_id),
                     tc,
                     new_score,
+                    [
+                        "Your rating: %s. Rank among all participations: %s/%s.",
+                        "%0.2f" % competition_sys[tc.id].players[participation_id],
+                        "%d" % rank,
+                        "%d" % all_num,
+                    ],
                 )
 
         for submission in participations.values():
