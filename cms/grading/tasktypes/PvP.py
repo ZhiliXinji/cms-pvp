@@ -33,11 +33,6 @@ from cms.grading.ParameterTypes import (
     ParameterTypeInt,
     ParameterTypeCollection,
 )
-from cms.grading.ParameterTypes import (
-    ParameterTypeChoice,
-    ParameterTypeInt,
-    ParameterTypeCollection,
-)
 from cms.grading.Sandbox import wait_without_std, Sandbox
 from cms.grading.languagemanager import LANGUAGES, get_language
 from cms.grading.steps import (
@@ -88,8 +83,6 @@ class PvP(TaskType):
     USER_IO_FIFOS = "fifo_io"
     ENABLE_AUTO_EVAL = "enabled"
     DISABLE_AUTO_EVAL = "disabled"
-    ENABLE_AUTO_EVAL = "enabled"
-    DISABLE_AUTO_EVAL = "disabled"
 
     ALLOW_PARTIAL_SUBMISSION = False
 
@@ -114,43 +107,6 @@ class PvP(TaskType):
         },
     )
 
-    _AUTO_EVAL = ParameterTypeChoice(
-        "Auto evaluation",
-        "auto_eval",
-        "Whether to process auto batch evaluation with fixed period.",
-        {
-            ENABLE_AUTO_EVAL: "Enabled",
-            DISABLE_AUTO_EVAL: "Disabled",
-        },
-    )
-
-    _INTERVAL = ParameterTypeInt(
-        "Evaluation interval",
-        "interval",
-        "Interval for auto batch evaluation (in seconds).",
-    )
-
-    _ROUNDS = ParameterTypeInt(
-        "Rounds",
-        "rounds",
-        "How many rounds should be run in each auto batch evaluation.",
-    )
-
-    # _K = ParameterTypeInt("K", "k", "Parameter K used in Elo rating.")
-
-    # _S_RATING = ParameterTypeInt(
-    #     "Initial rating",
-    #     "s_rating",
-    #     "Initial rating for all participations who have valid submissions.",
-    # )
-
-    ACCEPTED_PARAMETERS = [
-        _COMPILATION,
-        _USER_IO,
-        _AUTO_EVAL,
-        _INTERVAL,
-        _ROUNDS,
-    ]
     _AUTO_EVAL = ParameterTypeChoice(
         "Auto evaluation",
         "auto_eval",

@@ -30,6 +30,46 @@ function update_submissions_status(response)
     table.html(strings.join(""));
 };
 
+function update_pvp_status(response)
+{
+    var table = $("#pvp_status_table > tbody");
+    var msg = utils.standard_response(response);
+    if (msg != "")
+    {
+        table.html('<tr><td style="text-align: center;" colspan="2">'+ msg + '</td></tr>');
+        return;
+    }
+
+    var strings = []
+
+    var l = response['data'].length;
+    if (l == 0)
+    {
+        table.html('<tr><td colspan="5">No PvP tasks found.</td>');
+        return;
+    }
+
+    for (var i in response['data'])
+    {
+        strings.push('<tr><td style="text-align: center;">' + response['data'][i]['task_title'] + '</td>');
+        strings.push('<td style="text-align: center;">' + response['data'][i]['pvp_batch'] + '</td>');
+        strings.push('<td style="text-align: center;">' + response['data'][i]['evaluated_match_count'] + '/' + response['data'][i]['match_count'] + '</td>');
+        strings.push('<td style="text-align: center;"><button onclick="return true;"' +
+          {% if not admin.permission_all %}
+                                   ' disabled' +
+          {% endif %}
+                                   '>Start Match</button>');
+        strings.push('<button onclick="return true;"' +
+        {% if not admin.permission_all %}
+                                  ' disabled' +
+        {% endif %}
+                                  '>Update Score</button></td>');
+        strings.push('</tr>');
+    }
+
+    table.html(strings.join(""));
+};
+
 function update_queue_status(response)
 {
     var table = $("#queue_status_table > tbody");
@@ -210,6 +250,14 @@ function update_statuses()
                            {"contest_id": {{ contest.id }}},
                            update_submissions_status);
     }
+    if (!update_statuses.pvp_request
+            || update_statuses.pvp_request.state() != "pending") {
+        update_statuses.pvp_request =
+            cmsrpc_request("AdminWebServer", 0,
+                           "pvp_status",
+                           {"contest_id": {{ contest.id }}},
+                           update_pvp_status);
+    }
     {% endif %}
     if (!update_statuses.queue_request
             || update_statuses.queue_request.state() != "pending") {
@@ -251,6 +299,24 @@ update_statuses();
       <tr>
         <th>Status</th>
         <th>Number</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td style="text-align: center;" colspan="2"><img src="{{ url("static", "loading.gif") }}" alt="loading..." /></td></tr>
+    </tbody>
+  </table>
+  <div class="hr"></div>
+</div>
+
+<h2 id="title_pvp_status" class="toggling_on">PvP status</h2>
+<div id="pvp_status">
+  <table id="pvp_status_table" class="sub_table">
+    <thead>
+      <tr>
+        <th style="width:25%">Title</th>
+        <th style="width:20%">PvP batch</th>
+        <th style="width:30%">Evaluated / total matches</th>
+        <th style="width:25%">Action</th>
       </tr>
     </thead>
     <tbody>
