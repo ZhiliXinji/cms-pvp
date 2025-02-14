@@ -27,7 +27,11 @@ from functools import reduce
 
 from cms import config, rmtree
 from cms.db import Executable
-from cms.grading.ParameterTypes import ParameterTypeChoice, ParameterTypeInt
+from cms.grading.ParameterTypes import (
+    ParameterTypeChoice,
+    ParameterTypeInt,
+    ParameterTypeCollection,
+)
 from cms.grading.Sandbox import wait_without_std, Sandbox
 from cms.grading.languagemanager import LANGUAGES, get_language
 from cms.grading.steps import (
@@ -76,10 +80,11 @@ class PvP(TaskType):
     COMPILATION_STUB = "stub"
     USER_IO_STD = "std_io"
     USER_IO_FIFOS = "fifo_io"
+    ENABLE_AUTO_EVAL = "enabled"
+    DISABLE_AUTO_EVAL = "disabled"
 
     ALLOW_PARTIAL_SUBMISSION = False
 
-    # TODO: check if COMPILATION_STUB could work properly.
     _COMPILATION = ParameterTypeChoice(
         "Compilation",
         "compilation",
@@ -101,7 +106,43 @@ class PvP(TaskType):
         },
     )
 
-    ACCEPTED_PARAMETERS = [_COMPILATION, _USER_IO]
+    _AUTO_EVAL = ParameterTypeChoice(
+        "Auto evaluation",
+        "auto_eval",
+        "Whether to process auto batch evaluation with fixed period.",
+        {
+            ENABLE_AUTO_EVAL: "Enabled",
+            DISABLE_AUTO_EVAL: "Disabled",
+        },
+    )
+
+    _INTERVAL = ParameterTypeInt(
+        "Evaluation interval",
+        "interval",
+        "Interval for auto batch evaluation (in seconds).",
+    )
+
+    _ROUNDS = ParameterTypeInt(
+        "Rounds",
+        "rounds",
+        "How many rounds should be run in each auto batch evaluation.",
+    )
+
+    # _K = ParameterTypeInt("K", "k", "Parameter K used in Elo rating.")
+
+    # _S_RATING = ParameterTypeInt(
+    #     "Initial rating",
+    #     "s_rating",
+    #     "Initial rating for all participations who have valid submissions.",
+    # )
+
+    ACCEPTED_PARAMETERS = [
+        _COMPILATION,
+        _USER_IO,
+        _AUTO_EVAL,
+        _INTERVAL,
+        _ROUNDS,
+    ]
 
     @property
     def name(self):
@@ -111,8 +152,13 @@ class PvP(TaskType):
     def __init__(self, parameters):
         super().__init__(parameters)
 
-        self.compilation = self.parameters[0]
-        self.io = self.parameters[1]
+        (
+            self.compilation,
+            self.io,
+            self.auto_eval,
+            self.interval,
+            self.rounds,
+        ) = tuple(self.parameters)
 
     def get_compilation_commands(self, submission_format):
         """See TaskType.get_compilation_commands."""
