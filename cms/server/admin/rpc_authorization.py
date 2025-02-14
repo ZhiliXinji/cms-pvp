@@ -26,6 +26,7 @@ from cms.db import Admin, SessionGen
 
 RPCS_ALLOWED_FOR_AUTHENTICATED = [
     ("AdminWebServer", "submissions_status"),
+    ("AdminWebServer", "pvp_status"),
     ("ResourceService", "get_resources"),
     ("EvaluationService", "workers_status"),
     ("EvaluationService", "queue_status"),

@@ -153,43 +153,6 @@ class OverviewHandler(BaseHandler):
 
         self.r_params = self.render_params()
 
-        pvp_task_details = {}  # {task_id (int) : task_detail (dict) }: details for PvP tasks
-        pvp_tasks = []  # list of PvP tasks
-        if contest_id is not None:
-            for task in self.contest.tasks:
-                if task.active_dataset.task_type == "PvP":
-                    pvp_tasks.append(task)
-                    task_detail = {}
-                    matches = (
-                        self.sql_session.query(Match)
-                        .join(Task)
-                        .filter(Match.batch == task.pvp_batch)
-                        .filter(Task.id == task.id)
-                        .all()
-                    )
-                    match_count = 0
-                    evaluated_match_count = 0
-                    scored_match_count = 0
-                    for match in matches:
-                        match_count += 1
-                        match_result = match.get_result()
-                        if match_result is not None:
-                            if match_result.evaluated():
-                                evaluated_match_count += 1
-                            if match_result.get_status() == match_result.SCORED:
-                                scored_match_count += 1
-                    # count of matches in the task
-                    task_detail["match_count"] = match_count
-                    # count of matches that have been evaluated
-                    task_detail["evaluated_match_count"] = evaluated_match_count
-                    # count of matches that have been scored
-                    task_detail["scored_match_count"] = scored_match_count
-
-                    pvp_task_details[task.id] = task_detail
-
-        self.r_params["pvp_tasks"] = pvp_tasks
-        self.r_params["pvp_task_details"] = pvp_task_details
-
         self.render("overview.html", **self.r_params)
 
 

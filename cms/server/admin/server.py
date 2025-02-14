@@ -30,7 +30,7 @@ import logging
 from sqlalchemy import func, not_, literal_column
 
 from cms import config, ServiceCoord, get_service_shards
-from cms.db import SessionGen, Dataset, Submission, SubmissionResult, Task
+from cms.db import SessionGen, Dataset, Submission, SubmissionResult, Task, Match
 from cms.io import WebService, rpc_method
 from cms.service import EvaluationService
 from cmscommon.binary import hex_to_bin
@@ -190,3 +190,47 @@ class AdminWebServer(WebService):
         stats['compiling'] += 2 * stats['total'] - sum(stats.values())
 
         return stats
+
+    @staticmethod
+    @rpc_method
+    def pvp_status(contest_id):
+        """Returns a dictionary of statistics about pvp tasks.
+
+        contest_id (int|None): counts are restricted to this contest,
+            or None for no restrictions.
+
+        return (dict): statistics on the submissions.
+
+        """
+        pvp_tasks = {}  # list of PvP tasks
+        with SessionGen() as session:
+            if contest_id is not None:
+                tasks = session.query(Task).filter(Task.contest_id == contest_id)
+                for task in tasks:
+                    if task.active_dataset.task_type == "PvP":
+                        task_detail = {}
+                        matches = (
+                            session.query(Match)
+                            .join(Task)
+                            .filter(Match.batch == task.pvp_batch)
+                            .filter(Task.id == task.id)
+                            .all()
+                        )
+                        match_count = 0
+                        evaluated_match_count = 0
+                        for match in matches:
+                            match_count += 1
+                            match_result = match.get_result()
+                            if match_result is not None:
+                                if match_result.get_status() == match_result.SCORED:
+                                    evaluated_match_count += 1
+                        task_detail["task_id"] = task.id
+                        task_detail["task_title"] = task.title
+                        task_detail["pvp_batch"] = task.pvp_batch
+                        # count of matches in the task
+                        task_detail["match_count"] = match_count
+                        # count of matches that have been evaluated
+                        task_detail["evaluated_match_count"] = evaluated_match_count
+
+                        pvp_tasks[task.id] = task_detail
+        return pvp_tasks
