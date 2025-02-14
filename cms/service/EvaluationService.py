@@ -307,6 +307,7 @@ class EvaluationService(TriggeredService):
 
         self.scoring_service = self.connect_to(
             ServiceCoord("ScoringService", 0))
+        self.pvp_service = self.connect_to(ServiceCoord("PvPService", 0))
 
         self.add_executor(EvaluationExecutor(self))
         self.start_sweeper(117.0)
@@ -1105,6 +1106,8 @@ class EvaluationService(TriggeredService):
             # self.scoring_service.new_evaluation(
             #     match_id=match_result.match_id,
             #     dataset_id=match_result.dataset_id)
+
+            self.pvp_service.match_ended(match.id)
 
         # Evaluation unsuccessful, we log the error.
         else:

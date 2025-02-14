@@ -141,7 +141,7 @@ from .submission import Submission, File, Token, SubmissionResult, \
 from .usertest import UserTest, UserTestFile, UserTestManager, \
     UserTestResult, UserTestExecutable
 from .printjob import PrintJob
-from .match import Match, MatchResult, Matching
+from .match import Match, MatchResult, Matching, Batch
 
 from .init import init_db
 from .drop import drop_db

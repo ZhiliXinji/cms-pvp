@@ -51,6 +51,57 @@ from . import (
     SessionGen,
 )
 
+class Batch(Base):
+    """Class to store a batch evaluation."""
+
+    __tablename__ = "batches"
+
+    BATCH_PENDING = "pending"
+    BATCH_EVALUATING = "evaluating"
+    BATCH_EVALUATED = "evaluated"
+
+    # Auto increment primary key.
+    id = Column(Integer, primary_key=True)
+
+    task_id = Column(
+        Integer,
+        ForeignKey(Task.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    task = relationship(
+        Task,
+        uselist=False,
+    )
+    task_pvp_batch = Column(
+        Integer,
+        nullable=False,
+    )
+
+    round_id = Column(Integer, nullable=False, default=0)
+    rounds = Column(Integer, nullable=False)
+
+    status = Column(
+        Enum(BATCH_PENDING, BATCH_EVALUATING, BATCH_EVALUATED),
+        nullable=False,
+        default=BATCH_PENDING,
+    )
+
+    matches = relationship(
+        "Match",
+        back_populates="batch",
+        cascade="all, delete-orphan",
+    )
+
+    total_matches = Column(Integer, nullable=False, default=0)
+
+    timestamp = Column(DateTime, nullable=False)
+
+    def start_evaluate(self):
+        self.status = Batch.BATCH_EVALUATING
+
+    def end_evaluate(self):
+        self.status = Batch.BATCH_EVALUATED
 class Match(Base):
     """Class to store a match between two submissions."""
 
@@ -107,6 +158,18 @@ class Match(Base):
     )
 
     batch = Column(Integer, nullable=True)
+
+    batch_eval_id = Column(
+        Integer,
+        ForeignKey(Batch.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=True,
+    )
+    batch_eval = relationship(
+        Batch,
+        back_populates="matches",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
     def get_result(self, dataset=None):
         """Return the result associated to a dataset.
