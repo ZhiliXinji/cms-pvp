@@ -54,18 +54,22 @@ def get_operations(session, timestamp):
     for contest in contests:
         for task in contest.tasks:
             if task.active_dataset.task_type == "PvP":
+                task_type_object = task.active_dataset.task_type_object
+                if task_type_object.auto_eval != "enabled":
+                    continue
                 last_time = contest.start if task.pvp_batch == 0 \
                     else session.query(Batch).filter(Batch.task_id == task.id).\
                     order_by(Batch.timestamp.desc()).first().timestamp
-                if timestamp - last_time >= task.interval:
+                if timestamp - last_time >= task_type_object.interval:
                     new_batch = Batch(
-                        task_id=task.id,
+                        task=task,
                         timestamp=timestamp,
-                        rounds=task.rounds,
+                        rounds=task_type_object.rounds,
                         matches=[],
-                        task_pvp_batch=task.pvp_batch + 1
+                        task_pvp_batch=task.pvp_batch + 1,
                     )
                     session.add(new_batch)
+                    session.commit()
                     yield PvPOperation(new_batch.id), timestamp
 
     # TODO: other batch

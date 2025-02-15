@@ -33,15 +33,12 @@ from cms import ServiceCoord, config
 from cms.db import SessionGen, Submission, Dataset, get_submission_results
 from cms.io import Executor, TriggeredService, rpc_method
 from cmscommon.datetime import make_datetime
-from .pvpoperations import PvPOperation, get_operations
+from .pvpoperations import PvPOperation
+from functools import wraps
 
-
-logger = logging.getLogger(__name__)
-
-
-from cms import utf8_decoder, ServiceCoord
+import gevent.lock
+from cms import utf8_decoder
 from cms.db import (
-    SessionGen,
     Task,
     Submission,
     SubmissionResult,
@@ -49,13 +46,16 @@ from cms.db import (
     Participation,
     File,
     Match,
-    Batch
+    Batch,
 )
-from cmscommon.datetime import make_datetime
 from cms.io import RemoteServiceClient
 from sqlalchemy.orm import aliased
-from pvpoperations import get_last_match, get_last_submission, \
-    get_operations, get_match_submission
+from .pvpoperations import (
+    get_last_match,
+    get_last_submission,
+    get_operations,
+    get_match_submission,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,115 +94,132 @@ class PvPExecutor(Executor):
         self.scoring_service = scoring_service
         self.evaluation_service = evaluation_service
 
-    def next_batch(self, task):
-        with SessionGen() as session:
-            task.pvp_batch += 1
-            session.commit()
+    def next_batch(self, session, task_id):
+        task = Task.get_from_id(task_id, session)
+        if not task:
+            print("No task called `%s' found." % task_name)
+            return False
+        task.pvp_batch += 1
+        session.commit()
+        return True
 
-    def create_match(self, timestamp, s1, s2, batch):
+    def create_match(self, session, timestamp, s1, s2, batch_id):
         """TODO: docstring."""
-        with SessionGen() as session:
-            if not s1 or not s2 or s1.task_id != s2.task_id:
-                return False
+        if not s1 or not s2 or s1.task_id != s2.task_id:
+            logger.error("No match between two submissions.")
+            return
 
-            task = Task.get_from_id(s1.task_id)
-            if not task or task.active_dataset.task_type != "pvp":
-                return False
+        task = Task.get_from_id(s1.task_id, session)
+        if not task or task.active_dataset.task_type != "PvP":
+            logger.error("Not a PvP task. Exiting.")
+            return
 
-        return Match(
-                    submission1=s1,
-                    submission2=s2,
-                    task=task,
-                    timestamp=make_datetime(timestamp),
-                    batch=task.pvp_batch,
-                    batch_eval_id=batch.id
-                )
+        batch = Batch.get_from_id(batch_id, session)
 
-    def mark_match_submissions(self, task):
+        # print("***" + repr(task.id))
+        match = Match(
+            submission1=s1,
+            submission2=s2,
+            task=task,
+            timestamp=timestamp,
+            batch=task.pvp_batch,
+            batch_eval=batch,
+        )
+        # print("***" + repr(match.task_id))
+
+        session.add(match)
+        session.commit()
+        # print("***" + repr(match.task_id))
+        session.add(match.get_result_or_create())
+        session.commit()
+        return match
+
+    def mark_match_submissions(self, session, task_id):
         """Mark the submissions that will be used in the match."""
-        with SessionGen() as session:
-            for p in task.contest.participations:
-                submission = get_last_submission(session, p, task)
-                if submission:
-                    submission.pvp_batch = task.pvp_batch
-                    result = submission.get_result_or_create()
-                    result.invalidate_score()
-            session.commit()
-            return True
+        task = Task.get_from_id(task_id, session)
+        for p in task.contest.participations:
+            submission = get_last_submission(session, p, task)
+            # print(submission)
+            if submission:
+                submission.pvp_batch = task.pvp_batch
+                result = submission.get_result_or_create()
+                result.invalidate_score()
+        session.commit()
+        return True
 
-    def start_batch(self, batch_id):
-        with SessionGen() as session:
-            batch = Batch.get_from_id(batch_id, session)
-            if not batch:
-                logger.error("No batch %d found." % batch_id)
-                return False
+    def start_batch(self, session, batch_id):
+        batch = Batch.get_from_id(batch_id, session)
+        if not batch:
+            logger.error("No batch %d found." % batch_id)
+            return False
 
-            task = batch.task
-            if task.active_dataset.task_type != "PvP":
-                logger.error("Not a PvP task. Exiting.")
-                return False
+        task = batch.task
+        if task.active_dataset.task_type != "PvP":
+            logger.error("Not a PvP task. Exiting.")
+            return False
 
-            if not self.next_batch(task):
-                return False
-            if not self.mark_match_submissions(task):
-                return False
+        logger.info("Starting batch %d." % batch_id)
 
-            # round-robin
-            # if match_mode == "round-robin":
-            #     # total_matches = {p.id: 0.0 for p in task.contest.participations}
-            #     # win_matches = {p.id: 0.0 for p in task.contest.participations}
-            #     # for match in matches:
-            #     #     if match.result.get_status() != MatchResult.SCORED:
-            #     #         print("Match %d is not scored." % match.id)
-            #     #         return False
-            #     #     total_matches[match.submission1.participation.id] += 1.0
-            #     #     total_matches[match.submission2.participation.id] += 1.0
-            #     #     win_matches[match.submission1.participation.id] += match.result.score
-            #     #     win_matches[match.submission2.participation.id] += (
-            #     #         1.0 - match.result.score
-            #     #     )
+        if not self.next_batch(session, task.id):
+            return False
+        if not self.mark_match_submissions(session, task.id):
+            return False
 
-            #     # for p in task.contest.participations:
-            #     #     if total_matches[p.id] != 0.0:
-            #     #         final_scores[p.id] = win_matches[p.id] / total_matches[p.id]
-            #     for p1 in task.contest.participations:
-            #         for p2 in task.contest.participations:
-            #             if p1.id != p2.id:
-            #                 self.add_match(task, time.time(), p1, p2)
-            # elif match_mode == SYS_ELO:
+        # round-robin
+        # if match_mode == "round-robin":
+        #     # total_matches = {p.id: 0.0 for p in task.contest.participations}
+        #     # win_matches = {p.id: 0.0 for p in task.contest.participations}
+        #     # for match in matches:
+        #     #     if match.result.get_status() != MatchResult.SCORED:
+        #     #         print("Match %d is not scored." % match.id)
+        #     #         return False
+        #     #     total_matches[match.submission1.participation.id] += 1.0
+        #     #     total_matches[match.submission2.participation.id] += 1.0
+        #     #     win_matches[match.submission1.participation.id] += match.result.score
+        #     #     win_matches[match.submission2.participation.id] += (
+        #     #         1.0 - match.result.score
+        #     #     )
 
-            participation = []
-            rounds = batch.rounds
-            batch.start_evaluate()
+        #     # for p in task.contest.participations:
+        #     #     if total_matches[p.id] != 0.0:
+        #     #         final_scores[p.id] = win_matches[p.id] / total_matches[p.id]
+        #     for p1 in task.contest.participations:
+        #         for p2 in task.contest.participations:
+        #             if p1.id != p2.id:
+        #                 self.add_match(task, time.time(), p1, p2)
+        # elif match_mode == SYS_ELO:
 
-            for p in task.contest.participations:
-                submission = get_match_submission(session, p, task)
-                if submission is not None:
-                    participation.append((p, submission))
-            num = len(participation)
-            batch.total_match = 0
+        participation = []
+        rounds = batch.rounds
+        batch.start_evaluate()
 
-            # XXX: Random pairing?
-            matches = []
-            for _ in range(rounds):
-                random.shuffle(participation)
-                for i in range(0, num - 1, 2):
-                    s1, s2 = participation[i][1], participation[i + 1][1]
-                    matches.append(self.create_match(make_datetime(), s1, s2, batch))
-            batch.total_match = len(matches)
+        logger.info("Starting evaluating batch %d." % batch_id)
+        for p in task.contest.participations:
+            submission = get_match_submission(session, p, task)
+            # print(submission)
+            if submission is not None:
+                participation.append((p, submission))
+        # logger.info("Starting batch, participations: %s." % repr(participation))
+        num = len(participation)
 
-            for match in matches:
-                session.add(match)
-                session.add(match.get_result_or_create())
+        # XXX: Random pairing?
+        matches = []
+        for _ in range(rounds):
+            random.shuffle(participation)
+            for i in range(0, num - 1, 2):
+                s1, s2 = participation[i][1], participation[i + 1][1]
+                match = self.create_match(session, make_datetime(), s1, s2, batch.id)
+                if match is not None:
+                    matches.append(match)
+                    batch.total_matches += 1
 
-            session.commit()
+        session.commit()
+        for match in matches:
+            self.evaluation_service.new_match(match_id=match.id)
 
-            for match in matches:
-                self.evaluation_service.new_match(match.id)
-
-            if batch.total_match == 0:
-                # TODO: process with this situation
-                batch.end_evaluate()
+        if batch.total_matches == 0:
+            # TODO: process with this situation
+            batch.end_evaluate()
 
         return True
 
@@ -218,22 +235,42 @@ class PvPExecutor(Executor):
 
         """
         operation = entry.item
+        logger.info("Executing PvP operation %s." % operation)
         with SessionGen() as session:
             batch = Batch.get_from_id(operation.batch_id,
                                                 session)
 
             task = Task.get_from_id(batch.task_id, session)
             if task is None:
-                raise ValueError("Task %d not found in the database." %
-                                 operation.task_id)
+                logger.critical(
+                    "Task %d not found in the database." % operation.task_id
+                )
+                return
 
             dataset = task.active_dataset
             if dataset.task_type != "PvP":
-                raise ValueError("Task %d is not a PvP task." % task.id)
+                logger.critical("Task %d is not a PvP task." % task.id)
+                return
 
-            self.start_batch(batch.id)
+            self.start_batch(session, batch.id)
 
 
+def with_post_finish_lock(func):
+    """Decorator for locking on self.post_finish_lock.
+
+    Ensures that no more than one decorated function is executing at
+    the same time.
+
+    """
+
+    @wraps(func)
+    def wrapped(self, *args, **kwargs):
+        with self.post_finish_lock:
+            return func(self, *args, **kwargs)
+
+    return wrapped
+
+# TODO: multi-contest support.
 class PvPService(TriggeredService):
     """A service that processes all operations related to PvP task.
 
@@ -253,6 +290,8 @@ class PvPService(TriggeredService):
 
         self.add_executor(PvPExecutor(self.scoring_service, self.evaluation_service))
         self.start_sweeper(29.0)
+
+        self.post_finish_lock = gevent.lock.RLock()
 
     def _missing_operations(self):
         """Return a generator of unprocessed batch evaluation request.
@@ -299,8 +338,9 @@ class PvPService(TriggeredService):
                 dataset_id=submission_result.dataset_id,
             )
 
-    def update_score(self, task, competition_sys):
+    def update_score(self, task_id, competition_sys):
         with SessionGen() as session:
+            task = Task.get_from_id(task_id, session)
             for tc in task.active_dataset.testcases.values():
                 sorted_players = sorted(
                     competition_sys[tc.id].players.items(),
@@ -330,6 +370,8 @@ class PvPService(TriggeredService):
 
     def batch_ended(self, batch_id):
         with SessionGen() as session:
+            logger.info("Batch %d ended." % batch_id)
+
             batch = Batch.get_from_id(batch_id, session)
             task = batch.task
             competition_sys = {
@@ -351,22 +393,23 @@ class PvPService(TriggeredService):
                         match.submission2.participation_id,
                         float(matching.outcome.split()[0].strip()),
                     )
-            self.update_score(task, competition_sys)
+            self.update_score(task.id, competition_sys)
             batch.end_evaluate()
 
     @rpc_method
+    @with_post_finish_lock
     def match_ended(self, match_id):
         with SessionGen() as session:
             match = Match.get_from_id(match_id, session)
             if match is None:
                 return False
-            batch = match.batch
+            batch = match.batch_eval
             if batch is None:
                 return False
             batch.total_matches -= 1
             if batch.total_matches == 0:
-                self.batch_ended(batch.id)
                 session.commit()
+                self.batch_ended(batch.id)
                 return True
             else:
                 session.commit()

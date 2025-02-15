@@ -138,6 +138,7 @@ setup(
         "scripts/cmsProxyService",
         "scripts/cmsPrintingService",
         "scripts/cmsRankingWebServer",
+        "scripts/cmsPvPService",
         "scripts/cmsInitDB",
         "scripts/cmsDropDB",
     ],

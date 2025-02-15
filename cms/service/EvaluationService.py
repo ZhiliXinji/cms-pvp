@@ -335,13 +335,14 @@ class EvaluationService(TriggeredService):
         num = 0
         with SessionGen() as session:
             dataset = Dataset.get_from_id(operation.dataset_id, session)
-            testcase = dataset.testcases[operation.testcase_codename]
 
             if (
                 operation.type_ not in [ESOperation.EVALUATION, ESOperation.MATCH]
                 or dataset.task_type != "PvP"
             ):
                 return 0
+
+            testcase = dataset.testcases[operation.testcase_codename]
             if operation.type_ == ESOperation.MATCH:
                 match = Match.get_from_id(operation.object_id, session)
                 submissions = [match.submission1, match.submission2]
@@ -1107,7 +1108,7 @@ class EvaluationService(TriggeredService):
             #     match_id=match_result.match_id,
             #     dataset_id=match_result.dataset_id)
 
-            self.pvp_service.match_ended(match.id)
+            self.pvp_service.match_ended(match_id=match.id)
 
         # Evaluation unsuccessful, we log the error.
         else:

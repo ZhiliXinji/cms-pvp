@@ -82,14 +82,14 @@ class Batch(Base):
     rounds = Column(Integer, nullable=False)
 
     status = Column(
-        Enum(BATCH_PENDING, BATCH_EVALUATING, BATCH_EVALUATED),
+        Enum(BATCH_PENDING, BATCH_EVALUATING, BATCH_EVALUATED, name="status"),
         nullable=False,
         default=BATCH_PENDING,
     )
 
     matches = relationship(
         "Match",
-        back_populates="batch",
+        back_populates="batch_eval",
         cascade="all, delete-orphan",
     )
 
@@ -168,7 +168,6 @@ class Match(Base):
         Batch,
         back_populates="matches",
         uselist=False,
-        cascade="all, delete-orphan",
     )
 
     def get_result(self, dataset=None):
