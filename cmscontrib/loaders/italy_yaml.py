@@ -755,11 +755,11 @@ class YamlLoader(ContestLoader, TaskLoader, UserLoader, TeamLoader):
                             logger.warning("Stub for language %s not "
                                            "found.", lang.name)
                     if args["task_type"] == "PvP":
-                        args["task_type_parameters"] += [
+                        args["task_type_parameters"] += (
                             conf.get("auto_eval", "disabled"),
                             conf.get("interval", 1800),
                             conf.get("rounds", 5),
-                        ]
+                        )
                     for other_filename in os.listdir(os.path.join(self.path,
                                                                   "sol")):
                         if any(other_filename.endswith(header)
