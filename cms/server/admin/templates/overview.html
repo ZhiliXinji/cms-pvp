@@ -30,6 +30,18 @@ function update_submissions_status(response)
     table.html(strings.join(""));
 };
 
+function start_match(task_id) {
+  cmsrpc_request("PvPService", 0,
+                    "manually_start_match",
+                    {"task_id":task_id},
+                    function() {
+                      cmsrpc_request("AdminWebServer", 0,
+                           "pvp_status",
+                           {"contest_id": {{ contest.id }}},
+                           update_pvp_status);
+                    });
+}
+
 function update_pvp_status(response)
 {
     var table = $("#pvp_status_table > tbody");
@@ -54,16 +66,11 @@ function update_pvp_status(response)
         strings.push('<tr><td style="text-align: center;">' + response['data'][i]['task_title'] + '</td>');
         strings.push('<td style="text-align: center;">' + response['data'][i]['pvp_batch'] + '</td>');
         strings.push('<td style="text-align: center;">' + response['data'][i]['evaluated_match_count'] + '/' + response['data'][i]['match_count'] + '</td>');
-        strings.push('<td style="text-align: center;"><button onclick="return true;"' +
+        strings.push('<td style="text-align: center;"><button onclick="javascript:start_match(' + i + '); return true;"' +
           {% if not admin.permission_all %}
                                    ' disabled' +
           {% endif %}
-                                   '>Start Match</button>');
-        strings.push('<button onclick="return true;"' +
-        {% if not admin.permission_all %}
-                                  ' disabled' +
-        {% endif %}
-                                  '>Update Score</button></td>');
+                                   '>Start Match</button></td>');
         strings.push('</tr>');
     }
 

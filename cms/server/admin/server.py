@@ -30,7 +30,7 @@ import logging
 from sqlalchemy import func, not_, literal_column
 
 from cms import config, ServiceCoord, get_service_shards
-from cms.db import SessionGen, Dataset, Submission, SubmissionResult, Task, Match
+from cms.db import SessionGen, Dataset, Submission, SubmissionResult, Task, Match, Batch
 from cms.io import WebService, rpc_method
 from cms.service import EvaluationService
 from cmscommon.binary import hex_to_bin
@@ -77,6 +77,7 @@ class AdminWebServer(WebService):
             ServiceCoord("EvaluationService", 0))
         self.scoring_service = self.connect_to(
             ServiceCoord("ScoringService", 0))
+        self.pvp_service = self.connect_to(ServiceCoord("PvPService", 0))
 
         ranking_enabled = len(config.rankings) > 0
         self.proxy_service = self.connect_to(
@@ -209,21 +210,18 @@ class AdminWebServer(WebService):
                 for task in tasks:
                     if task.active_dataset.task_type == "PvP":
                         task_detail = {}
-                        matches = (
-                            session.query(Match)
-                            .join(Task)
-                            .filter(Match.batch == task.pvp_batch)
-                            .filter(Task.id == task.id)
-                            .all()
+                        batch = (
+                            session.query(Batch)
+                            .filter(Batch.task_pvp_batch == task.pvp_batch)
+                            .filter(Batch.task_id == task.id)
+                            .first()
                         )
                         match_count = 0
                         evaluated_match_count = 0
-                        for match in matches:
-                            match_count += 1
-                            match_result = match.get_result()
-                            if match_result is not None:
-                                if match_result.get_status() == match_result.SCORED:
-                                    evaluated_match_count += 1
+                        if batch:
+                            match_count = batch.all_matches
+                            evaluated_match_count = match_count - batch.total_matches
+
                         task_detail["task_id"] = task.id
                         task_detail["task_title"] = task.title
                         task_detail["pvp_batch"] = task.pvp_batch

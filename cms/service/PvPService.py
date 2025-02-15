@@ -212,6 +212,7 @@ class PvPExecutor(Executor):
                 if match is not None:
                     matches.append(match)
                     batch.total_matches += 1
+                    batch.all_matches += 1
 
         session.commit()
         for match in matches:
@@ -418,3 +419,24 @@ class PvPService(TriggeredService):
     @rpc_method
     def new_batch(self, batch_id):
         self.enqueue(PvPOperation(batch_id))
+
+    @rpc_method
+    def manually_start_match(self, task_id):
+        with SessionGen() as session:
+            task = Task.get_from_id(task_id, session)
+            if task is None:
+                return False
+            if task.active_dataset.task_type != "PvP":
+                return False
+            task_type_object = task.active_dataset.task_type_object
+            new_batch = Batch(
+                task=task,
+                timestamp=make_datetime(),
+                rounds=task_type_object.rounds,
+                matches=[],
+                task_pvp_batch=task.pvp_batch + 1,
+            )
+            session.add(new_batch)
+            session.commit()
+            self.new_batch(new_batch.id)
+            return True

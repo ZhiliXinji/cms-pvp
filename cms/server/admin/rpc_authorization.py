@@ -31,6 +31,7 @@ RPCS_ALLOWED_FOR_AUTHENTICATED = [
     ("EvaluationService", "workers_status"),
     ("EvaluationService", "queue_status"),
     ("LogService", "last_messages"),
+    ("PvPService", "manually_start_match"),
 ]
 
 

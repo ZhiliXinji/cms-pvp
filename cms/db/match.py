@@ -94,6 +94,7 @@ class Batch(Base):
     )
 
     total_matches = Column(Integer, nullable=False, default=0)
+    all_matches = Column(Integer, nullable=False, default=0)
 
     timestamp = Column(DateTime, nullable=False)
 
