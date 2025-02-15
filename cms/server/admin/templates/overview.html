@@ -37,7 +37,7 @@ function start_match(task_id) {
                     function() {
                       cmsrpc_request("AdminWebServer", 0,
                            "pvp_status",
-                           {"contest_id": {{ contest.id }}},
+                           {"contest_id": {% if contest is not none %}{{ contest.id }}{% else %}null{% endif %}},
                            update_pvp_status);
                     });
 }
