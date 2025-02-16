@@ -334,10 +334,7 @@ class PvPService(TriggeredService):
             submission_result.set_evaluation_outcome()
             session.commit()
 
-            self.scoring_service.new_evaluation(
-                submission_id=submission_result.submission_id,
-                dataset_id=submission_result.dataset_id,
-            )
+
 
     def update_score(self, task_id, competition_sys):
         with SessionGen() as session:
@@ -366,6 +363,13 @@ class PvPService(TriggeredService):
                         ],
                     )
 
+            for p in task.contest.participations:
+                match_submission = get_match_submission(session, p, task)
+                if match_submission is not None:
+                    self.scoring_service.new_evaluation(
+                        submission_id=match_submission.id,
+                        dataset_id=task.active_dataset.id,
+                    )
             session.commit()
             return True
 
