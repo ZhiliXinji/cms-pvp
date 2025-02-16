@@ -356,7 +356,6 @@ class PvPService(TriggeredService):
         evaluation.outcome = score
         evaluation.text = text
 
-        submission_result.set_evaluation_outcome()
         session.commit()
 
 
@@ -395,6 +394,10 @@ class PvPService(TriggeredService):
                         submission_id=match_submission.id,
                         dataset_id=task.active_dataset.id,
                     )
+                    result = match_submission.get_result()
+                    if result:
+                        result.invalidate_score()
+                        result.set_evaluation_outcome()
             session.commit()
             return True
 
