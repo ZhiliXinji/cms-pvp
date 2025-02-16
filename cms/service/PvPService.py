@@ -77,15 +77,19 @@ class Elo:
     def update_elo(rating, expected, actual, k=32):
         return rating + k * (actual - expected)
 
-    def update_scores(self, player_a, player_b, result):
+    def update_scores(self, player_a, player_b, result1, result2):
         expected_a = Elo.expected_score(self.players[player_a], self.players[player_b])
         expected_b = Elo.expected_score(self.players[player_b], self.players[player_a])
 
+        sum = result1 + result2
+        result1 /= sum
+        result2 /= sum
+
         self.players[player_a] = self.update_elo(
-            self.players[player_a], expected_a, result
+            self.players[player_a], expected_a, result1
         )
         self.players[player_b] = self.update_elo(
-            self.players[player_b], expected_b, 1.0 - result
+            self.players[player_b], expected_b, result2
         )
 
 match_mode = SYS_ELO
@@ -441,10 +445,12 @@ class PvPService(TriggeredService):
             session.commit()
             assert match.testcase_id is not None
             assert len(match.result.matchings) == 1
+            outcomes = match.result.matchings[0].outcome.split()
             self.competition_sys[batch.id][match.testcase_id].update_scores(
                 match.submission1.participation_id,
                 match.submission2.participation_id,
-                float(match.result.matchings[0].outcome.split()[0].strip()),
+                float(outcomes[0].strip()),
+                float(outcomes[1].strip()),
             )
             if batch.rest_matches == 0:
                 if batch.rounds_id == batch.rounds:
