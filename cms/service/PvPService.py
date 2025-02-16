@@ -91,11 +91,13 @@ class Elo:
 match_mode = SYS_ELO
 
 class PvPExecutor(Executor):
-    def __init__(self, scoring_service, evaluation_service, competition_sys):
+    def __init__(
+        self, scoring_service, evaluation_service, participations, competition_sys
+    ):
         super().__init__()
         self.scoring_service = scoring_service
         self.evaluation_service = evaluation_service
-        self.participation = {}
+        self.participations = participations
         self.competition_sys = competition_sys
 
     def next_batch(self, session, task_id):
@@ -175,25 +177,25 @@ class PvPExecutor(Executor):
                 logger.error("Zero rounds are not allowed.")
                 return False
 
-            self.participation[batch_id] = []
+            self.participations[batch_id] = {}
             self.competition_sys[batch_id] = {
                 tc.id: Elo(
                     participation_ids=[p.id for p in task.contest.participations]
                 )
                 for tc in task.active_dataset.testcases.values()
             }
-            participation = self.participation[batch_id]
+            participations = self.participations[batch_id]
             competition_sys = self.competition_sys[batch_id]
             for p in task.contest.participations:
                 submission = get_match_submission(session, p, task)
                 if submission is not None:
-                    participation.append((p.id, submission.id))
+                    participations[p.id] = submission.id
                 else:
                     for tc in task.active_dataset.testcases.values():
                         competition_sys[tc.id].players[p.id] = 0.0
 
             # TODO
-            if len(participation) < 2:
+            if len(participations) < 2:
                 logger.warning("Batch %d has less than 2 players. Exiting." % batch_id)
                 return False
 
@@ -203,7 +205,7 @@ class PvPExecutor(Executor):
             logger.info("Batch %d already evaluated. Exiting." % batch_id)
             return False
 
-        participation = self.participation[batch_id]
+        participations = self.participations[batch_id]
         competition_sys = self.competition_sys[batch_id]
         batch.rounds_id += 1
         logger.info(
@@ -213,11 +215,16 @@ class PvPExecutor(Executor):
         assert batch.rest_matches == 0
         matches = []
         for tc in task.active_dataset.testcases.values():
-            participation.sort(
-                key=lambda p: competition_sys[tc.id].players[p[0]], reverse=True
+            participation_sorted = sorted(
+                list(participations.items()),
+                key=lambda p: competition_sys[tc.id].players[p[0]],
+                reverse=True,
             )
-            for i in range(0, len(participation) - 1, 2):
-                s1_id, s2_id = participation[i][1], participation[i + 1][1]
+            for i in range(0, len(participation_sorted) - 1, 2):
+                s1_id, s2_id = (
+                    participation_sorted[i][1],
+                    participation_sorted[i + 1][1],
+                )
                 match = self.create_match(
                     session,
                     make_datetime(),
@@ -297,6 +304,7 @@ class PvPService(TriggeredService):
 
     """
 
+    participations = {}
     competition_sys = {}
 
     def __init__(self, shard):
@@ -313,7 +321,10 @@ class PvPService(TriggeredService):
 
         self.add_executor(
             PvPExecutor(
-                self.scoring_service, self.evaluation_service, self.competition_sys
+                self.scoring_service,
+                self.evaluation_service,
+                self.participations,
+                self.competition_sys,
             )
         )
         self.start_sweeper(29.0)
@@ -335,18 +346,17 @@ class PvPService(TriggeredService):
                 counter += 1
         return counter
 
-    def update_single_score(self, session, task, participation, testcase, score, text):
+    def update_single_score(self, session, submission_id, testcase, score, text):
         """TODO: docstring."""
+        submission = Submission.get_from_id(submission_id, session)
+        if not submission:
+            return False
         logger.info(
-            "participation %d get %f on testcase %s",
-            participation.id,
+            "submission %d get %f on testcase %s",
+            submission.id,
             score,
             testcase.codename,
         )
-        submission = get_match_submission(session, participation, task)
-
-        if not submission:
-            return False
 
         submission_result = submission.get_result()
         if not submission_result:
@@ -358,9 +368,7 @@ class PvPService(TriggeredService):
 
         session.commit()
 
-
-
-    def update_score(self, session, task_id, competition_sys):
+    def update_score(self, session, task_id, participations, competition_sys):
         task = Task.get_from_id(task_id, session)
         for tc in task.active_dataset.testcases.values():
             logger.info(
@@ -376,8 +384,7 @@ class PvPService(TriggeredService):
                 new_score = 1.0 / rank
                 self.update_single_score(
                     session,
-                    task,
-                    session.query(Participation).get(participation_id),
+                    participations[participation_id],
                     tc,
                     new_score,
                     [
@@ -390,15 +397,15 @@ class PvPService(TriggeredService):
                     ],
                 )
 
-            for p in task.contest.participations:
-                match_submission = get_match_submission(session, p, task)
-                if match_submission is not None:
-                    result = match_submission.get_result()
+            for submission_id in participations.values():
+                submission = Submission.get_from_id(submission_id, session)
+                if submission is not None:
+                    result = submission.get_result()
                     if result:
                         result.invalidate_score()
                         result.set_evaluation_outcome()
                     self.scoring_service.new_evaluation(
-                        submission_id=match_submission.id,
+                        submission_id=submission.id,
                         dataset_id=task.active_dataset.id,
                     )
             session.commit()
@@ -411,7 +418,12 @@ class PvPService(TriggeredService):
             batch = Batch.get_from_id(batch_id, session)
             task = batch.task
 
-            self.update_score(session, task.id, self.competition_sys[batch_id])
+            self.update_score(
+                session,
+                task.id,
+                self.participations[batch_id],
+                self.competition_sys[batch_id],
+            )
             batch.end_evaluate()
 
     @rpc_method
