@@ -31,9 +31,14 @@ function update_submissions_status(response)
 };
 
 function start_match(task_id) {
+  var last_input = document.getElementById("matchRoundInput" + task_id);
+  var last_input_value = '';
+  if (last_input != null) {
+      last_input_value = last_input.value;
+  }
   cmsrpc_request("PvPService", 0,
                     "manually_start_match",
-                    {"task_id":task_id},
+                    {"task_id":task_id, "rounds":last_input_value},
                     function() {
                       cmsrpc_request("AdminWebServer", 0,
                            "pvp_status",
@@ -70,8 +75,15 @@ function update_pvp_status(response)
           {% if not admin.permission_all %}
                                    ' disabled' +
           {% endif %}
-                                   '>Start Match</button></td>');
-        strings.push('</tr>');
+                                   '>Start Match</button>');
+        var last_input = document.getElementById("matchRoundInput" + i);
+        var last_input_value = '';
+        if (last_input != null) {
+            last_input_value = last_input.value;
+        }
+        strings.push('<input type="number" id="matchRoundInput' + i + '" style="width: 30px;" oninput="" min="1" step="1" value="' + last_input_value + '">');
+        strings.push('<span>rounds, blank to apply defaults</span>');
+        strings.push('</td></tr>');
     }
 
     table.html(strings.join(""));

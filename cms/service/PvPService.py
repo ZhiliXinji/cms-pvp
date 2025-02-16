@@ -359,10 +359,7 @@ class PvPService(TriggeredService):
         submission_result.set_evaluation_outcome()
         session.commit()
 
-        self.scoring_service.new_evaluation(
-            submission_id=submission_result.submission_id,
-            dataset_id=submission_result.dataset_id,
-        )
+
 
     def update_score(self, session, task_id, competition_sys):
         task = Task.get_from_id(task_id, session)
@@ -391,8 +388,15 @@ class PvPService(TriggeredService):
                     ],
                 )
 
-        session.commit()
-        return True
+            for p in task.contest.participations:
+                match_submission = get_match_submission(session, p, task)
+                if match_submission is not None:
+                    self.scoring_service.new_evaluation(
+                        submission_id=match_submission.id,
+                        dataset_id=task.active_dataset.id,
+                    )
+            session.commit()
+            return True
 
     def batch_ended(self, batch_id):
         with SessionGen() as session:
@@ -430,7 +434,7 @@ class PvPService(TriggeredService):
         self.enqueue(PvPOperation(batch_id))
 
     @rpc_method
-    def manually_start_match(self, task_id):
+    def manually_start_match(self, task_id, rounds):
         with SessionGen() as session:
             task = Task.get_from_id(task_id, session)
             if task is None:
@@ -438,10 +442,12 @@ class PvPService(TriggeredService):
             if task.active_dataset.task_type != "PvP":
                 return False
             task_type_object = task.active_dataset.task_type_object
+            if rounds == "":
+                rounds = task_type_object.rounds
             new_batch = Batch(
                 task=task,
                 timestamp=make_datetime(),
-                rounds=task_type_object.rounds,
+                rounds=int(rounds),
                 matches=[],
                 task_pvp_batch=task.pvp_batch + 1,
             )
