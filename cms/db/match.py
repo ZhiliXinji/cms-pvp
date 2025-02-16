@@ -78,8 +78,9 @@ class Batch(Base):
         nullable=False,
     )
 
-    round_id = Column(Integer, nullable=False, default=0)
+    rounds_id = Column(Integer, nullable=False, default=0)
     rounds = Column(Integer, nullable=False)
+    rest_matches = Column(Integer, nullable=False, default=0)
 
     status = Column(
         Enum(BATCH_PENDING, BATCH_EVALUATING, BATCH_EVALUATED, name="status"),
@@ -92,9 +93,6 @@ class Batch(Base):
         back_populates="batch_eval",
         cascade="all, delete-orphan",
     )
-
-    total_matches = Column(Integer, nullable=False, default=0)
-    all_matches = Column(Integer, nullable=False, default=0)
 
     timestamp = Column(DateTime, nullable=False)
 
@@ -171,6 +169,18 @@ class Match(Base):
         uselist=False,
     )
 
+    # Testcase (id and object) this matching was performed on.
+    # Some matches will specify a testcase to run on.
+    testcase_id = Column(
+        Integer,
+        ForeignKey(Testcase.id, onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    testcase = relationship(Testcase)
+
+    def single_testcase(self):
+        return self.testcase_id is not None
     def get_result(self, dataset=None):
         """Return the result associated to a dataset.
 

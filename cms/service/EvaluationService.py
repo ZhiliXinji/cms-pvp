@@ -325,7 +325,7 @@ class EvaluationService(TriggeredService):
         """Make all possible dummy evaluations of the submissions that related
         to the match ESOperation, used to store outcome in PvP task.
 
-        operation (ESOperation): match operation that we want the evaluations
+        operation (ESOperation): match or evaluation operation that we want the evaluations
                                 for both sides.
 
         return (int): Number of added evaluations.
@@ -723,10 +723,16 @@ class EvaluationService(TriggeredService):
                         .filter(Matching.match_id == object_id)
                         .scalar()
                     )
-                    if num_matchings == num_testcases_per_dataset[dataset_id]:
-                        match_result = MatchResult.get_from_id(
-                            (object_id, dataset_id), session
-                        )
+
+                    match_result = MatchResult.get_from_id(
+                        (object_id, dataset_id), session
+                    )
+                    need_matchings = (
+                        num_testcases_per_dataset[dataset_id]
+                        if not match_result.match.single_testcase()
+                        else 1
+                    )
+                    if num_matchings == need_matchings:
                         match_result.set_evaluation_outcome()
 
             logger.info("Committing evaluation outcomes...")

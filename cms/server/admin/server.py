@@ -216,19 +216,19 @@ class AdminWebServer(WebService):
                             .filter(Batch.task_id == task.id)
                             .first()
                         )
-                        match_count = 0
-                        evaluated_match_count = 0
+                        round_count = 0
+                        evaluated_round_count = 0
                         if batch:
-                            match_count = batch.all_matches
-                            evaluated_match_count = match_count - batch.total_matches
+                            round_count = batch.rounds
+                            evaluated_round_count = batch.rounds_id
 
                         task_detail["task_id"] = task.id
                         task_detail["task_title"] = task.title
                         task_detail["pvp_batch"] = task.pvp_batch
                         # count of matches in the task
-                        task_detail["match_count"] = match_count
+                        task_detail["match_count"] = round_count
                         # count of matches that have been evaluated
-                        task_detail["evaluated_match_count"] = evaluated_match_count
+                        task_detail["evaluated_match_count"] = evaluated_round_count
 
                         pvp_tasks[task.id] = task_detail
         return pvp_tasks

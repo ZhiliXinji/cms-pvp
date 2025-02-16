@@ -206,6 +206,9 @@ def match_get_operations(match_result, match, dataset):
     )
     for testcase_codename in dataset.testcases.keys():
         testcase_id = dataset.testcases[testcase_codename].id
+        # if this match specify a testcase, only run this testcase.
+        if match.testcase_id is not None and match.testcase_id != testcase_id:
+            continue
         if testcase_id not in evaluated_testcase_ids:
             yield (
                 ESOperation(ESOperation.MATCH, match.id, dataset.id, testcase_codename),
@@ -495,6 +498,7 @@ def get_match_operations(session, contest_id=None):
             & (FILTER_MATCHING_DATASETS_TO_JUDGE)
             & (FILTER_MATCHING_RESULTS_TO_EVALUATE)
             & (Matching.id.is_(None))
+            & (Match.testcase_id.is_(None) | Match.testcase_id == Testcase.id)
         )
         .with_entities(
             Match.id,
