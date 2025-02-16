@@ -498,7 +498,7 @@ def get_match_operations(session, contest_id=None):
             & (FILTER_MATCHING_DATASETS_TO_JUDGE)
             & (FILTER_MATCHING_RESULTS_TO_EVALUATE)
             & (Matching.id.is_(None))
-            & (Match.testcase_id.is_(None) | Match.testcase_id == Testcase.id)
+            & (Match.testcase_id.is_(None) | (Match.testcase_id == Testcase.id))
         )
         .with_entities(
             Match.id,
