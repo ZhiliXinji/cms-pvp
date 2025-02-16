@@ -363,6 +363,9 @@ class PvPService(TriggeredService):
     def update_score(self, session, task_id, competition_sys):
         task = Task.get_from_id(task_id, session)
         for tc in task.active_dataset.testcases.values():
+            logger.info(
+                "updating score for testcase %s in task %d", tc.codename, task_id
+            )
             sorted_players = sorted(
                 competition_sys[tc.id].players.items(),
                 key=lambda item: item[1],
@@ -390,16 +393,16 @@ class PvPService(TriggeredService):
             for p in task.contest.participations:
                 match_submission = get_match_submission(session, p, task)
                 if match_submission is not None:
-                    self.scoring_service.new_evaluation(
-                        submission_id=match_submission.id,
-                        dataset_id=task.active_dataset.id,
-                    )
                     result = match_submission.get_result()
                     if result:
                         result.invalidate_score()
                         result.set_evaluation_outcome()
+                    self.scoring_service.new_evaluation(
+                        submission_id=match_submission.id,
+                        dataset_id=task.active_dataset.id,
+                    )
             session.commit()
-            return True
+        return True
 
     def batch_ended(self, batch_id):
         with SessionGen() as session:
@@ -421,8 +424,16 @@ class PvPService(TriggeredService):
             batch = match.batch_eval
             if batch is None:
                 return False
+
             batch.rest_matches -= 1
             session.commit()
+            assert match.testcase_id is not None
+            assert len(match.result.matchings) == 1
+            self.competition_sys[batch.id][match.testcase_id].update_scores(
+                match.submission1.participation_id,
+                match.submission2.participation_id,
+                float(match.result.matchings[0].outcome.split()[0].strip()),
+            )
             if batch.rest_matches == 0:
                 if batch.rounds_id == batch.rounds:
                     self.batch_ended(batch.id)

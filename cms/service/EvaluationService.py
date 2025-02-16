@@ -343,9 +343,11 @@ class EvaluationService(TriggeredService):
                 return 0
 
             testcase = dataset.testcases[operation.testcase_codename]
+            testcase_id = None
             if operation.type_ == ESOperation.MATCH:
                 match = Match.get_from_id(operation.object_id, session)
                 submissions = [match.submission1, match.submission2]
+                testcase_id = match.testcase_id
             else:
                 submissions = [Submission.get_from_id(operation.object_id, session)]
 
@@ -355,7 +357,9 @@ class EvaluationService(TriggeredService):
                     evaluation.testcase_id
                     for evaluation in submission_result.evaluations
                 )
-                if testcase.id not in evaluated_testcase_ids:
+                if testcase.id not in evaluated_testcase_ids and (
+                    testcase_id is None or testcase.id == testcase_id
+                ):
                     evaluation = Evaluation(
                         outcome="0.0",
                         # execution_time=self.plus.get('execution_time'),
@@ -490,6 +494,7 @@ class EvaluationService(TriggeredService):
                     or operation.type_ == ESOperation.COMPILATION
                 ) and self.enqueue(operation, priority, timestamp):
                     counter += 1
+                else:
                     self.make_dummy_evaluations(operation)
 
             for operation, priority, timestamp in get_user_tests_operations(
