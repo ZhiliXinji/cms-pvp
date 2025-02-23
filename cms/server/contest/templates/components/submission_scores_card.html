@@ -1,0 +1,22 @@
+{% if score_type is defined %}
+    {% if two_column_submission %}
+        {% set two_task_scores = score_type.max_public_score > 0
+            and score_type.max_public_score < score_type.max_score %}
+
+<div class="row g-xxl-5">
+        {% if two_task_scores %}
+    <div class="col-6 col-xl-5 offset-xl-1">{% include "components/public_score_card.html" %}</div>
+    <div class="col-6 col-xl-5">{% include "components/tokened_score_card.html" %}</div>
+        {% else %}
+    <div class="col-6 offset-3 col-xl-5 offset-xl-4">{% include "components/public_score_card.html" %}</div>
+    <div class="col-6 offset-3 col-xl-5 offset-xl-4">{% include "components/tokened_score_card.html" %}</div>
+        {% endif %}
+</div>
+
+    {% else %}
+
+{% include "components/public_score_card.html" %}
+{% include "components/tokened_score_card.html" %}
+
+    {% endif %}
+{% endif %}

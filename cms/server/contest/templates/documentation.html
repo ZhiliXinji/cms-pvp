@@ -3,63 +3,87 @@
 {% set page = "documentation" %}
 
 {% block core %}
-<div class="span9">
+<div class="container">
 
-<div class="page-header">
-    <h1>{% trans %}Documentation{% endtrans %}</h1>
-</div>
+<section class="mb-5 card shadow">
+  <div class="card-body">
+    <h3 class="card-title mb-4">{% trans %}Programming languages and libraries{% endtrans %}</h3>
 
-<h2>{% trans %}Programming languages and libraries{% endtrans %}</h2>
+    <div class="row g-4">
+      {% for name, ext in language_docs %}
+        <div class="col-md-6">
+          <div class="p-3 border rounded bg-body-tertiary">
+            <h3 class="h5 mb-3">{{ name }}</h3>
+            <a href="{{ url('docs', ext, 'index.html') }}"
+                class="btn btn-outline-primary d-inline-flex align-items-center">
+              <i class="bi bi-book me-2"></i>
+              {% trans %}Documentation{% endtrans %}
+            </a>
+          </div>
+        </div>
+      {% endfor %}
 
-{% for name, ext in language_docs %}
-<h3>{{name}}</h3>
-<p><a href="{{ url("docs", ext, "index.html") }}">{% trans %}Documentation{% endtrans %}</a></p>
-{% endfor %}
+      {% if contest.languages|map("to_language")|map(attribute="source_extensions")|any("contains", ".java") %}
+        <div class="col-12">
+          <div class="alert alert-info mt-3">
+            <h3 class="h5">{% trans %}Java Specific Instructions{% endtrans %}</h3>
+            <p class="mb-0">{% trans %}The main Java class of the solution should have exactly the same name as the task.{% endtrans %}</p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
 
-{% if contest.languages|map("to_language")|map(attribute="source_extensions")|any("contains", ".java") %}
-<h3>Java</h3>
+<section class="mb-5 card shadow">
+  <div class="card-body">
+    <h3 class="card-title mb-4">{% trans %}Submission details for compilation{% endtrans %}</h3>
 
-<p>{% trans %}The main Java class of the solution should have exactly the same name as the task.{% endtrans %}</p>
-{% endif %}
+    <div class="table-responsive">
+      <table class="table table-hover table-bordered align-middle">
+        <thead>
+          <tr>
+            <th style="width: 30%;">{% trans %}Message{% endtrans %}</th>
+            <th>{% trans %}Explanation{% endtrans %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for message in COMPILATION_MESSAGES.all() %}
+            <tr>
+              <td class="fw-semibold">{{ _(message.message) }}</td>
+              <td>{{ _(message.help_text) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
+<section class="card shadow">
+  <div class="card-body">
+    <h3 class="card-title mb-4">{% trans %}Submission details for evaluation{% endtrans %}</h3>
 
-<h2>{% trans %}Submission details for compilation{% endtrans %}</h2>
-
-<table class="table table-bordered">
-  <thead>
-    <tr>
-      <th style="width: 30%;">{% trans %}Message{% endtrans %}</th>
-      <th>{% trans %}Explanation{% endtrans %}</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for message in COMPILATION_MESSAGES.all() %}
-    <tr>
-      <td><em>{{ _(message.message) }}</em></td>
-      <td>{{ _(message.help_text) }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<h2>{% trans %}Submission details for evaluation{% endtrans %}</h2>
-
-<table class="table table-bordered">
-  <thead>
-    <tr>
-      <th style="width: 30%;">{% trans %}Message{% endtrans %}</th>
-      <th>{% trans %}Explanation{% endtrans %}</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for message in EVALUATION_MESSAGES.all() %}
-    <tr>
-      <td><em>{{ _(message.message) }}</em></td>
-      <td>{{ _(message.help_text) }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+    <div class="table-responsive">
+      <table class="table table-hover table-bordered align-middle">
+        <thead>
+          <tr>
+            <th style="width: 30%;">{% trans %}Message{% endtrans %}</th>
+            <th>{% trans %}Explanation{% endtrans %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for message in EVALUATION_MESSAGES.all() %}
+            <tr>
+              <td class="fw-semibold">{{ _(message.message) }}</td>
+              <td>{{ _(message.help_text) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
 </div>
 {% endblock core %}

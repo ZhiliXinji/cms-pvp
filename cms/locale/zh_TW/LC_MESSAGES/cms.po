@@ -313,8 +313,14 @@ msgstr "詢問列表"
 msgid "Subject"
 msgstr "標題"
 
+msgid "Enter subject..."
+msgstr "請輸入標題"
+
 msgid "Text"
 msgstr "內容"
+
+msgid "Enter your question..."
+msgstr "請輸入你的問題"
 
 msgid "Ask question"
 msgstr "詢問新問題"
@@ -419,6 +425,9 @@ msgstr "擅自以非正當方式操作本系統將導致取消競賽資格."
 msgid "If you encountered this error during normal usage, please notify the contest administrators."
 msgstr "若在正常使用的情況下發生錯誤, 請聯絡管理員."
 
+msgid "Return to Home Page"
+msgstr "回到首頁"
+
 msgid "General information"
 msgstr "競賽資訊"
 
@@ -426,22 +435,22 @@ msgid "The contest hasn't started yet."
 msgstr "競賽尚未開始"
 
 #, python-format
-msgid "The contest will start at %(start_time)s and will end at %(stop_time)s."
-msgstr "競賽時間將於 %(start_time)s 開始, 至 %(stop_time)s 結束."
+msgid "The contest will start at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "競賽時間將於 <strong>%(start_time)s</strong> 開始, 至 <strong>%(stop_time)s</strong> 結束."
 
 msgid "The contest is currently running."
 msgstr "競賽進行中"
 
 #, python-format
-msgid "The contest started at %(start_time)s and will end at %(stop_time)s."
-msgstr "競賽時間為 %(start_time)s 至 %(stop_time)s."
+msgid "The contest started at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "競賽時間為 <strong>%(start_time)s</strong> 至 <strong>%(stop_time)s</strong>."
 
 msgid "The contest has already ended."
 msgstr "競賽已經結束"
 
 #, python-format
-msgid "The contest started at %(start_time)s and ended at %(stop_time)s."
-msgstr "競賽時間於 %(start_time)s 開始, 並已於 %(stop_time)s 結束."
+msgid "The contest started at <strong>%(start_time)s</strong> and ended at <strong>%(stop_time)s</strong>."
+msgstr "競賽時間於 <strong>%(start_time)s</strong> 開始, 並已於 <strong>%(stop_time)s</strong> 結束."
 
 msgid "You have an infinite number of tokens."
 msgstr "在本題中有無限量的 Token 可供使用."
@@ -468,6 +477,9 @@ msgstr "Token 分為兩類: 競賽-Token (競賽共用的 Token), 與題目-Toke
 msgid "You can see the detailed result of a submission by using two tokens on it, one of each type."
 msgstr "對於每次傳送而言, 使用兩類 Token 各一枚即可觀看該次詳細的評測結果."
 
+msgid "Time Frame"
+msgstr "計時器"
+
 #, python-format
 msgid "Every user is allowed to compete (i.e. submit solutions) for a uninterrupted time frame of %(per_user_time)s."
 msgstr "每位參賽者可以選擇連續的 %(per_user_time)s 參加本次計時競賽."
@@ -482,15 +494,15 @@ msgid "By clicking on the button below you can start your time frame."
 msgstr "點擊以下按鈕確認開始參加競賽並開始計時."
 
 #, python-format
-msgid "You started your time frame at %(start_time)s."
-msgstr "您已在 %(start_time)s 開始競賽計時."
+msgid "You started your time frame at <strong>%(start_time)s</strong>."
+msgstr "您已在 <strong>%(start_time)s</strong> 開始競賽計時."
 
 msgid "You can submit solutions until the end of the time frame or until the end of the contest, whatever comes first."
 msgstr "您可以作答到整體競賽終止或您的競賽計時器結束為止."
 
 #, python-format
-msgid "You started your time frame at %(start_time)s and you already finished it."
-msgstr "您已在 %(start_time)s 開始競賽計時, 而現在時間已結束."
+msgid "You started your time frame at <strong>%(start_time)s</strong> and you already finished it."
+msgstr "您已在 <strong>%(start_time)s</strong> 開始競賽計時, 而現在時間已結束."
 
 msgid "There's nothing you can do now."
 msgstr "目前無法進行任何操作."

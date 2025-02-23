@@ -267,12 +267,12 @@ class SubmissionStatusHandler(ContestHandler):
                         sr.public_score, score_type.max_public_score,
                         sr.public_score_details, task.score_precision,
                         translation=self.translation)
-            if score_type.max_public_score < score_type.max_score \
-                    and (submission.token is not None
-                         or self.r_params["actual_phase"] == 3):
+            if score_type.max_public_score < score_type.max_score:
                 data["max_score"] = \
                     round(score_type.max_score, task.score_precision)
-                if data["status"] == SubmissionResult.SCORED:
+                if data["status"] == SubmissionResult.SCORED \
+                        and (submission.token is not None
+                            or self.r_params["actual_phase"] == 3):
                     data["score"] = \
                         round(sr.score, task.score_precision)
                     data["score_message"] = score_type.format_score(
@@ -318,7 +318,9 @@ class SubmissionDetailsHandler(ContestHandler):
                 feedback_level = task.feedback_level
 
             details = score_type.get_html_details(
-                raw_details, feedback_level, translation=self.translation)
+                raw_details, feedback_level, translation=self.translation,
+                use_bootstrap5=True,
+            )
 
         self.render("submission_details.html", sr=sr, details=details,
                     **self.r_params)

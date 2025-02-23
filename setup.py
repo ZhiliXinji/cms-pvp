@@ -47,11 +47,13 @@ PACKAGE_DATA = {
         "admin/templates/macro/*.*",
         "contest/static/*.*",
         "contest/static/css/*.*",
+        "contest/static/css/fonts/*.*",
         "contest/static/img/*.*",
         "contest/static/img/mimetypes/*.*",
         "contest/static/js/*.*",
         "contest/templates/*.*",
         "contest/templates/macro/*.*",
+        "contest/templates/components/*.*",
     ],
     "cms.service": [
         "templates/printing/*.*",

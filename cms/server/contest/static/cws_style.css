@@ -4,24 +4,6 @@ body {
     overflow-y: scroll;
 }
 
-/* Add some padding to the top of the page to avoid the static navbar from
-   covering the content on the top. Since (due to responsive CSS) the navbar
-   stops being static when the display is small enough, we have to add a
-   media-query rule
- */
-
-@media (min-width: 980px) {
-    #main {
-        position: relative;
-        padding-top: 20px;
-    }
-}
-
-/* Remove the on-hover coloring of rows in tables with table-nohover class */
-.table.table-nohover > tbody > tr:hover > td, .table.table-nohover > tbody > tr:hover > th {
-    background-color: transparent !important;
-}
-
 /** Announcements, questions, answers and messages **/
 
 /* Almost "copy" Bootstrap rules for alert-info */
@@ -35,10 +17,10 @@ div.message_list div.message {
     border-radius: 4px;
     min-height: 18px;
     margin-bottom: 18px;
-    text-shadow: 0 1px 0 rgba(255,255,255,0.5);
-    color: #3A87AD;
-    border: 1px solid #BCD8F1;
-    background-color: #D9EDF7;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    color: #3a87ad;
+    border: 1px solid #bcd8f1;
+    background-color: #d9edf7;
 }
 
 div.question_list div.question {
@@ -54,7 +36,6 @@ div.question_list div.no_answer {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
 }
-
 
 /* Display the timestamp on the top right corner of the box */
 
@@ -104,16 +85,6 @@ div.question_list div.no_answer {
     text-align: center;
 }
 
-/* Add some margins to the headers, except the ones after the page-header */
-
-h2 {
-    margin: 30px 0 15px;
-}
-
-div.page-header + h2 {
-    margin: 0 0 15px;
-}
-
 /* Enhancements to the question form */
 
 div.question_submit form {
@@ -154,69 +125,8 @@ div.question_submit textarea {
 
 /** Login **/
 
-div.login_box form {
-    margin-bottom: 0;
-}
-
-div.login_box form fieldset div.control-group:last-child {
-    margin-bottom: 0;
-}
-
-div.login_container {
-    margin-bottom: 20px;
-}
-
 div.login_box {
-    max-width: 450px;
-    margin: 0 auto;
-}
-
-@media (max-width: 979px) {
-    div.navbar.navbar-fixed-top {
-        margin-bottom: 20px;
-    }
-}
-
-@media (min-width: 768px) {
-    div.login_box fieldset div.control-group div.controls input {
-        width: 280px;
-    }
-}
-
-@media (max-width: 979px) and (min-height: 488px) {
-    div.login_container {
-        position: fixed;
-        top: 50%;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        margin: 0;
-        padding: 0 20px;
-    }
-
-    div.login_box {
-        /* The total height of the box is 2*60 (padding) + 60 (h2) +
-           (27+9) (p) + 2*(28+18) (inputs) + 40 (buttons) = 348px; */
-        margin-top: -174px;
-    }
-}
-
-@media (min-width: 980px) and (min-height: 468px) {
-    div.login_container {
-        position: fixed;
-        top: 50%;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        margin: 0;
-        padding: 0 20px;
-    }
-
-    div.login_box {
-        /* The total height of the box is 2*60 (padding) + 60 (h2) +
-           (27+9) (p) + 2*(28+18) (inputs) + 40 (buttons) = 348px; */
-        margin-top: -174px;
-    }
+    max-width: calc(30rem + 5vw);
 }
 
 /** Register **/
@@ -235,167 +145,188 @@ div.register_box {
 }
 
 /* Some fixes and enhancements of Bootstrap */
-
+/* For mobile devices (max-width: 767px) */
 @media (max-width: 767px) {
-    .modal {
+    .modal-dialog {
         position: fixed;
         top: 50%;
         left: 10px;
         right: 10px;
         width: auto;
-        margin: -250px 0 0;
-    }
-
-    .modal.fade.in {
-        top: 50%;
+        transform: translateY(-50%); /* Vertically center */
     }
 }
 
+/* For medium screens (768px to 979px) */
 @media (min-width: 768px) and (max-width: 979px) {
-    .modal.wide {
+    .modal-dialog.modal-wide {
         width: 600px;
-        margin-left: -300px;
+        margin-left: auto;
+        margin-right: auto;
     }
 }
 
+/* For large screens (980px to 1199px) */
 @media (min-width: 980px) and (max-width: 1199px) {
-    .modal.wide {
+    .modal-dialog.modal-wide {
         width: 780px;
-        margin-left: -390px;
+        margin-left: auto;
+        margin-right: auto;
     }
 }
 
+/* For extra large screens (1200px and above) */
 @media (min-width: 1200px) {
-    .modal.wide {
+    .modal-dialog.modal-wide {
         width: 970px;
-        margin-left: -485px;
+        margin-left: auto;
+        margin-right: auto;
     }
+}
+
+/*** Heading style */
+section h3 {
+    /* .text-body-secondary */
+    color: var(--bs-secondary-color);
+}
+
+/*** Table style */
+thead {
+    --bs-table-bg: var(--bs-tertiary-bg);
+    border-color: var(--bs-table-border-color);
 }
 
 /*** Task statement */
 
-.task_description .statement.no_statement {
-    font-size: 1.2em;
-    font-style: italic;
-    text-align: center;
+/** Attachments */
+
+.btn-attachment {
+    /* .btn-light without --bs-btn-bg and --bs-border-color */
+    --bs-btn-color: #000;
+    --bs-btn-hover-color: #000;
+    --bs-btn-hover-bg: #d3d4d5;
+    --bs-btn-hover-border-color: #c6c7c8;
+    --bs-btn-focus-shadow-rgb: 211, 212, 213;
+    --bs-btn-active-color: #000;
+    --bs-btn-active-bg: #c6c7c8;
+    --bs-btn-active-border-color: #babbbc;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: #000;
+    --bs-btn-disabled-bg: #f8f9fa;
+    --bs-btn-disabled-border-color: #f8f9fa;
 }
 
-.task_description .statement.one_statement {
-    text-align: center;
+/*** Navbar */
+
+.navbar {
+    --bs-navbar-color: rgba(var(--bs-emphasis-color-rgb), 0.75);
+    --bs-navbar-disabled-color: rgba(var(--bs-emphasis-color-rgb), 0.5);
+    --bs-navbar-btn-active-color: rgba(var(--bs-emphasis-color-rgb), 0.9);
+    --bs-navbar-bg: var(--bs-body-bg);
+    background-color: var(--bs-navbar-bg);
 }
 
-@media (max-width: 767px) {
-    .task_description .statement.many_statements .main_statements {
-        margin-bottom: 15px;
-    }
-
-    .task_description .statement.many_statements .all_statements div {
-        max-height: 280px;
-    }
+[data-bs-theme=light] .navbar {
+    --bs-navbar-btn-active-bg: var(--bs-secondary-bg-subtle);
 }
 
-@media (min-width: 768px) {
-    .task_description .statement.many_statements {
-        min-height: 238px;
-        position: relative;
-    }
-
-    .task_description .statement.many_statements .all_statements {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        -moz-box-sizing: border-box;
-        box-sizing: border-box;
-        margin: 0;
-    }
-
-    .task_description .statement.many_statements .all_statements div {
-        height: 100%;
-    }
+[data-bs-theme=dark] .navbar {
+    --bs-navbar-btn-active-bg: #41464b;
 }
 
-@media (min-width: 768px) and (max-width: 979px) {
-    .task_description .statement.many_statements .main_statements {
-        width: 290px;
-    }
-
-    .task_description .statement.many_statements .all_statements {
-        width: 228px;
-    }
+.navbar-btn {
+    --bs-btn-color: var(--bs-navbar-color);
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: var(--bs-navbar-hover-color);
+    --bs-btn-hover-bg: var(--bs-secondary-bg);
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-focus-shadow-rgb: var(--bs-secondary-bg-rgb);
+    --bs-btn-active-color: var(--bs-navbar-btn-active-color);
+    --bs-btn-active-bg: var(--bs-navbar-btn-active-bg);
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-color: var(--bs-navbar-disabled-color);
+    --bs-btn-disabled-border-color: transparent;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
 }
 
-@media (min-width: 980px) and (max-width: 1199px) {
-    .task_description .statement.many_statements .main_statements {
-        width: 380px;
-    }
-
-    .task_description .statement.many_statements .all_statements {
-        width: 300px;
-    }
+/*** Sidebar */
+.sidebar {
+    flex: 0 0 20%;
+    max-width: 250px;
 }
 
-@media (min-width: 1200px) {
-    .task_description .statement.many_statements .main_statements {
-        width: 470px;
-    }
-
-    .task_description .statement.many_statements .all_statements {
-        width: 370px;
-    }
+.sidebar .nav {
+    border: var(--bs-border-width) solid var(--bs-border-color-translucent);
 }
 
-.task_description .statement.many_statements .main_statements {
-    text-align: center;
+.sidebar .nav .nav-link {
+    color: var(--bs-body-color);
 }
 
-.task_description .statement.many_statements .main_statements p {
-    text-align: left;
+.sidebar .nav .nav-link:hover,
+.sidebar .nav .nav-link:focus,
+.sidebar .nav .hovermenu:hover .nav-link,
+.sidebar .nav .hovermenu:focus .nav-link {
+    color: var(--bs-body-color);
+    background-color: var(--bs-tertiary-bg);
 }
 
-.task_description .statement.many_statements .main_statements p:last-child {
-    margin-bottom: 5px;
+.sidebar .nav .nav-link.active,
+.sidebar .nav .nav-link:active,
+.sidebar .nav .hovermenu:hover .nav-link.active,
+.sidebar .nav .hovermenu:focus .nav-link:active {
+    color: #fff;
+    background-color: #0d6efd;
 }
 
-.task_description .statement.many_statements .main_statements a.btn {
-    min-width: 50%;
-    margin: 5px;
+/*** Dropdown list with hover effects */
+
+.dropdown-menu .dropdown-item {
+    /* Same as .nav-link */
+    transition:
+        color 0.15s ease-in-out,
+        background-color 0.15s ease-in-out,
+        border-color 0.15s ease-in-out;
 }
 
-.task_description .statement.many_statements .all_statements {
-    padding: 5px;
-}
-
-.task_description .statement.many_statements .all_statements div {
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-    overflow-y: auto;
-    padding: 0;
-}
-
-.task_description .statement.many_statements .all_statements div ul {
-    margin: 5px 5px 5px 25px;
-}
-
-/*** Compilation commands */
-
-.compilation_command_cell {
-    padding: 5px !important;
-}
-
-.compilation_command {
+.hovermenu .dropdown-menu {
     display: block;
+    visibility: hidden;
+    opacity: 0;
+    transition:
+        visibility 0.25s ease-in-out,
+        opacity 0.25s ease-in-out,
+        margin-left 0.25s ease-in-out,
+        max-height 0.25s ease-in-out;
 }
 
-.compilation_command + .compilation_command {
-    margin-top: 5px;
+.hovermenu:hover .dropdown-menu {
+    display: block;
+    visibility: visible;
+    opacity: 1;
+}
+
+#lang_dropdown_list {
+    max-height: 0;
+    right: 0;
+    left: auto;
+    transform: translateY(0.2rem);
+}
+
+.hovermenu:hover #lang_dropdown_list {
+    max-height: 30rem;
+}
+
+.task-nav .dropdown-menu {
+    position: fixed;
+    margin-left: 0;
+}
+
+.task-nav:hover .dropdown-menu {
+    margin-left: 0.3rem;
 }
 
 /*** Unread count */
-
-#unread_count {
-    float: right;
-}
 
 #unread_count.no_unread {
     display: none;
@@ -409,345 +340,145 @@ td.token_rules p:last-child {
 
 /*** Notifications */
 
-.notifications {
-    position: fixed;
-    top: 60px;
-    width: 0;
-    right: 0;
-    bottom: 0;
-    overflow: visible;
-    z-index: 1;
-}
-
-.notifications .notification {
-    width: 160px;
-    float: right;
-    margin-right: 20px;
-    clear: both;
+#notifications .toast {
+    backdrop-filter: blur(0.4rem);
 }
 
 /*** Task score */
 
-.task_score_container {
-    display: flex;
-    justify-content: space-evenly;
-    font-weight: bold;
-}
-
 .task_score {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 0;
+    flex: 1 1 0;
+    border-width: medium;
 }
 
-.task_score .score img {
-    margin-left: 5px;
+.task_score .spinner-border {
+    scale: 75%;
 }
 
 .task_score.score_0 {
-    background-color: hsla(0, 100%, 50%, 0.4);
+    background-color: hsla(0, 100%, 50%, 0.2);
+    border-color: hsla(0, 100%, 50%, 0.5);
 }
 
 .task_score.score_0_100 {
-    background-color: hsla(60, 100%, 50%, 0.4);
+    background-color: hsla(60, 100%, 50%, 0.2);
+    border-color: hsla(60, 100%, 50%, 0.5);
 }
 
 .task_score.score_100 {
-    background-color: hsla(120, 100%, 50%, 0.4);
+    background-color: hsla(120, 100%, 50%, 0.2);
+    border-color: hsla(120, 100%, 50%, 0.5);
 }
 
 /*** Submit a solution */
 
-#submit_solution {
-    margin-bottom: 20px;
-}
-
-#submit_solution form {
-    margin-bottom: 0;
-}
-
-#submit_solution .control-group {
-    margin-bottom: 0;
-}
-
-#submit_solution .control-group:last-of-type {
-    margin-top: 10px;
-}
-
-#submit_solution .control-label {
-    width: 100px;
-    padding-top: 4px;
-    margin-bottom: 4px;
-}
-
-#submit_solution .controls {
-    margin-left: 110px;
-}
-
-#submit_solution input[type="file"] {
-    height: auto;
-    line-height: 18px;
-}
-
-
 /*** Submissions table */
 
-.submission_list colgroup col.time,
-.submission_list colgroup col.datetime {
-    width: 1%;
-}
-
-.submission_list colgroup col.status {
-    width: 20%;
-}
-
-.submission_list colgroup col.public_score {
-    width: 20%;
-}
-
-.submission_list colgroup col.total_score {
-    width: 20%;
-}
-
-.submission_list colgroup col.files {
-    width: 10%;
-}
-
-.submission_list colgroup col.token {
-    width: 10%;
-}
-
-.submission_list tbody tr td.no_submissions {
-    font-style: italic;
-    text-align: center !important;
-}
-
-.submission_list tbody tr td.time,
-.submission_list tbody tr td.datetime {
-    white-space: nowrap;
-}
-
-.submission_list tbody tr td.status .details {
-    float: right;
-    cursor: pointer;
-}
-
-.submission_list tbody tr td.files,
-.submission_list tbody tr td.token {
-    padding: 3px;
-}
-
-.submission_list tbody tr td.files .btn,
-.submission_list tbody tr td.token .btn {
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-    width: 100%;
-    white-space: nowrap;
-}
-
-.submission_list tbody tr td.token form {
-    display: inline;
-}
-
-.submission_list td.public_score.undefined {
-    color: #AAA;
+.submission_list .status .spinner-border {
+    scale: 70%;
 }
 
 .submission_list td.public_score.score_0 {
-    background-color: hsla(0, 100%, 50%, 0.4);
+    background-color: hsla(0, 100%, 50%, 0.2);
 }
 
 .submission_list tr:hover td.public_score.score_0 {
-    background-color: hsla(0, 100%, 50%, 0.5);
+    background-color: hsla(0, 100%, 50%, 0.3);
 }
 
 .submission_list td.public_score.score_0_100 {
-    background-color: hsla(60, 100%, 50%, 0.4);
+    background-color: hsla(60, 100%, 50%, 0.2);
 }
 
 .submission_list tr:hover td.public_score.score_0_100 {
-    background-color: hsla(60, 100%, 50%, 0.5);
+    background-color: hsla(60, 100%, 50%, 0.3);
 }
 
 .submission_list td.public_score.score_100 {
-    background-color: hsla(120, 100%, 50%, 0.4);
+    background-color: hsla(120, 100%, 50%, 0.2);
 }
 
 .submission_list tr:hover td.public_score.score_100 {
-    background-color: hsla(120, 100%, 50%, 0.5);
-}
-
-.submission_list td.total_score.undefined {
-    color: #AAA;
+    background-color: hsla(120, 100%, 50%, 0.3);
 }
 
 .submission_list td.total_score.score_0 {
-    background-color: hsla(0, 100%, 50%, 0.7);
+    background-color: hsla(0, 100%, 50%, 0.4);
 }
 
 .submission_list tr:hover td.total_score.score_0 {
-    background-color: hsla(0, 100%, 50%, 0.8);
+    background-color: hsla(0, 100%, 50%, 0.5);
 }
 
 .submission_list td.total_score.score_0_100 {
-    background-color: hsla(60, 100%, 50%, 0.7);
+    background-color: hsla(60, 100%, 50%, 0.4);
 }
 
 .submission_list tr:hover td.total_score.score_0_100 {
-    background-color: hsla(60, 100%, 50%, 0.8);
+    background-color: hsla(60, 100%, 50%, 0.5);
 }
 
 .submission_list td.total_score.score_100 {
-    background-color: hsla(120, 100%, 50%, 0.7);
+    background-color: hsla(120, 100%, 50%, 0.4);
 }
 
 .submission_list tr:hover td.total_score.score_100 {
-    background-color: hsla(120, 100%, 50%, 0.8);
+    background-color: hsla(120, 100%, 50%, 0.5);
 }
 
 /*** Submission details */
 
-#submission_detail .modal-body {
-    position: relative;
-    height: 400px;
+#submission_detail .accordion-item .accordion-header .score {
+    width: 7rem;
 }
 
-#submission_detail .modal-body .loading {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-size: 16px;
-    font-style: italic;
-    margin-top: -16px; /* half the height of the image */
+#submission_detail .accordion-item.undefined .accordion-header .score {
+    color: #fff;
+    background-color: var(--bs-secondary);
 }
 
-#submission_detail .modal-body .loading img {
-    display: block;
-    height: 32px;
-    width: 32px;
-    margin: 0 auto 12px;
+#submission_detail .accordion-item.correct .accordion-header .score {
+    color: #fff;
+    background-color: var(--bs-success);
 }
 
-#submission_detail .modal-body {
-    overflow-y: scroll;
+#submission_detail .accordion-item.notcorrect .accordion-header .score {
+    color: #fff;
+    background-color: var(--bs-danger);
 }
 
-#submission_detail .modal-body h3 {
-    margin-bottom: 15px;
+#submission_detail .accordion-item.partiallycorrect .accordion-header .score {
+    color: #000;
+    background-color: var(--bs-orange);
 }
 
-#submission_detail .modal-body h3:not(:first-of-type) {
-    margin-top: 30px;
+#submission_detail .idx {
+    width: 0;
 }
 
-#submission_detail .subtask.open {
-    margin-bottom: 20px;
-}
-
-#submission_detail .subtask-head {
-    font-size: 16px;
-    line-height: 20px;
-    border: none;
-    border-radius: 5px;
-    background-color: #E0E0E0;
-    cursor: pointer;
-    height: 20px;
-    padding: 4px;
-    margin-bottom: 10px;
-    box-shadow: 0 0 2px 2px #D0D0D0 inset;
-}
-
-#submission_detail .subtask.open .subtask-head {
-    margin-bottom: 15px;
-}
-
-#submission_detail .subtask .subtask-head i {
-    margin: 2px;
-}
-
-#submission_detail .subtask .subtask-head .score {
-    float: right;
-    font-weight: bold;
-    display: inline-block;
-    border-radius: 5px;
-    width: 20%;
-    text-align: center;
-    height: 24px;
-    margin-top: -2px;
-    margin-right: -2px;
-    color: white;
-    line-height: 24px;
-}
-
-#submission_detail .subtask.undefined .subtask-head .score {
-    background-color: #babdb6;
-}
-
-#submission_detail .subtask.correct .subtask-head .score {
-    background-color: #4e9a06;
-}
-
-#submission_detail .subtask.notcorrect .subtask-head .score {
-    background-color: #cc0000;
-}
-
-#submission_detail .subtask.partiallycorrect .subtask-head .score {
-    background-color: #edd400;
-}
-
-#submission_detail .subtask:not(.open) .subtask-body {
-    display: none;
-}
-
-#submission_detail table.testcase-list {
-    table-layout: fixed;
-    width: 100%;
-}
-
-#submission_detail table.testcase-list thead th.idx {
-    width: 5%;
-}
-
-#submission_detail table.testcase-list thead th.outcome {
+#submission_detail .outcome {
     width: 15%;
 }
 
-#submission_detail table.testcase-list thead th.execution-time,
-#submission_detail table.testcase-list thead th.memory-used {
-    width: 100px;
+#submission_detail tr.correct .outcome {
+    color: var(--bs-success);
 }
 
-#submission_detail table.testcase-list tbody tr:not(.undefined) td.outcome {
-    padding: 5px;
+#submission_detail tr.notcorrect .outcome {
+    color: var(--bs-danger);
 }
 
-#submission_detail table.testcase-list tbody tr:not(.undefined) td.outcome .outcome {
-    display: inline-block;
-    width: 100%;
-    height: 24px;
-    line-height: 24px;
-    border-radius: 5px;
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-    color: white;
-    padding-left: 5px;
+#submission_detail tr.partiallycorrect .outcome {
+    color: var(--bs-orange);
 }
 
-#submission_detail table.testcase-list tbody tr.correct td.outcome .outcome {
-    background-color: #4e9a06;
+#submission_detail .execution-time {
+    width: 15%;
 }
 
-#submission_detail table.testcase-list tbody tr.notcorrect td.outcome .outcome {
-    background-color: #cc0000;
+#submission_detail .memory-used {
+    width: 15%;
 }
-
-#submission_detail table.testcase-list tbody tr.partiallycorrect td.outcome .outcome {
-    background-color: #edd400;
-}
-
 
 /*** per-user time box */
 
@@ -757,30 +488,8 @@ td.token_rules p:last-child {
 
 /*** Countdown */
 
-#countdown_box {
-    text-align: center;
-    color: #333333;
-    margin: 0 0 8px;
-}
-
 #countdown_box.hidden {
     display: none;
-}
-
-#countdown_label {
-    color: #999999;
-}
-
-/*** Server time */
-
-#server_time_box {
-    text-align: center;
-    color: #333333;
-    margin: 0 0 8px;
-}
-
-#server_time_label {
-    color: #999999;
 }
 
 /*** License notice */
@@ -791,83 +500,6 @@ td.token_rules p:last-child {
     padding: 0 6%;
     font-size: 11px;
 }
-
-/*** Attachments */
-
-#attachments ul {
-    margin-left: 0;
-    list-style-type: none;
-    -webkit-column-count: 3;
-    -webkit-column-gap: 8px;
-    -moz-column-count: 3;
-    -moz-column-gap: 8px;
-    column-count: 3;
-    column-gap: 8px;
-}
-
-#attachments ul li {
-    -webkit-column-break-inside: avoid;
-    -webkit-break-inside: avoid;
-    -moz-break-inside: avoid;
-    break-inside: avoid;
-}
-
-/* this is a really ugly hack to simulate the no-break behavior on firefox */
-@-moz-document url-prefix() {
-    #attachments ul li {
-        display: table;
-        table-layout: fixed;
-        width: 100%;
-    }
-}
-
-#attachments ul li a {
-    display: block;
-    height: 36px;
-    margin-bottom: 8px;
-    padding: 6px;
-    text-align: left;
-}
-
-#attachments ul li a:hover {
-    background-color: #E3E3E3;
-}
-
-#attachments ul li img {
-    float: left;
-    margin: 2px 8px 2px 2px;
-}
-
-#attachments ul li .first_line {
-    display: block;
-    height: 18px;
-    overflow: hidden;
-}
-
-#attachments ul li .name {
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: bold;
-}
-
-#attachments ul li .size {
-    float: right;
-    font-style: italic;
-    /* the size floats on right of the first line if there's enough space.
-       otherwise (if the name is very long) it gets shifted down,
-       "disappearing" because the first line has overflow: hidden */
-}
-
-#attachments ul li .type {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 
 /** Test interface */
 
@@ -965,7 +597,7 @@ td.token_rules p:last-child {
 
 .user_test_list tbody tr td.time.undefined,
 .user_test_list tbody tr td.memory.undefined {
-    color: #AAA;
+    color: #aaa;
     white-space: nowrap;
 }
 
@@ -987,17 +619,17 @@ td.token_rules p:last-child {
 #user_test_detail .modal-body {
     position: relative;
     height: 400px;
+    overflow-y: auto; /* Ensure content can scroll if it exceeds the height */
 }
 
 #user_test_detail .modal-body .loading {
     position: absolute;
     top: 50%;
-    left: 0;
-    right: 0;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Vertically and horizontally center */
     text-align: center;
     font-size: 16px;
     font-style: italic;
-    margin-top: -16px; /* half the height of the image */
 }
 
 #user_test_detail .modal-body .loading img {
@@ -1005,10 +637,6 @@ td.token_rules p:last-child {
     height: 32px;
     width: 32px;
     margin: 0 auto 12px;
-}
-
-#lang {
-    width: 100px;
 }
 
 /** Printing interface */

@@ -552,43 +552,43 @@ msgid "The contest hasn't started yet."
 msgstr "대회 시작전입니다."
 
 #, python-format
-msgid "The contest will start at %(start_time)s and will end at %(stop_time)s."
-msgstr "대회는 %(start_time)s 에 시작되어\n %(stop_time)s 에 종료될 예정입니다."
+msgid "The contest will start at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "대회는 <strong>%(start_time)s</strong> 에 시작되어\n <strong>%(stop_time)s</strong> 에 종료될 예정입니다."
 
 msgid "The contest is currently running."
 msgstr "대회가 진행중입니다."
 
 #, python-format
-msgid "The contest started at %(start_time)s and will end at %(stop_time)s."
-msgstr "대회가 %(start_time)s 에 시작되었으며\n %(stop_time)s 에 종료될 예정입니다."
+msgid "The contest started at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "대회가 <strong>%(start_time)s</strong> 에 시작되었으며\n <strong>%(stop_time)s</strong> 에 종료될 예정입니다."
 
 msgid "The contest has already ended."
 msgstr "대회가 종료되었습니다."
 
 #, python-format
-msgid "The contest started at %(start_time)s and ended at %(stop_time)s."
-msgstr "대회가 %(start_time)s 에 시작되었으며\n %(stop_time)s 에 종료되었습니다."
+msgid "The contest started at <strong>%(start_time)s</strong> and ended at <strong>%(stop_time)s</strong>."
+msgstr "대회가 <strong>%(start_time)s</strong> 에 시작되었으며\n <strong>%(stop_time)s</strong> 에 종료되었습니다."
 
 msgid "The analysis mode hasn't started yet."
 msgstr "대회 리뷰 시작전입니다."
 
 #, python-format
-msgid "The analysis mode will start at %(start_time)s and will end at %(stop_time)s."
-msgstr "대회 리뷰는 %(start_time)s 에 시작되어\n %(stop_time)s 에 종료될 예정입니다."
+msgid "The analysis mode will start at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "대회 리뷰는 <strong>%(start_time)s</strong> 에 시작되어\n <strong>%(stop_time)s</strong> 에 종료될 예정입니다."
 
 msgid "The analysis mode is currently running."
 msgstr "대회 리뷰가 진행중입니다."
 
 #, python-format
-msgid "The analysis mode started at %(start_time)s and will end at %(stop_time)s."
-msgstr "대회 리뷰가 %(start_time)s 에 시작되었으며\n %(stop_time)s 에 종료될 예정입니다."
+msgid "The analysis mode started at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "대회 리뷰가 <strong>%(start_time)s</strong> 에 시작되었으며\n <strong>%(stop_time)s</strong> 에 종료될 예정입니다."
 
 msgid "The analysis mode has already ended."
 msgstr "대회 리뷰가 종료되었습니다."
 
 #, python-format
-msgid "The analysis mode started at %(start_time)s and ended at %(stop_time)s."
-msgstr "대회 리뷰가 %(start_time)s 에 시작되었으며\n %(stop_time)s 에 종료되었습니다."
+msgid "The analysis mode started at <strong>%(start_time)s</strong> and ended at <strong>%(stop_time)s</strong>."
+msgstr "대회 리뷰가 <strong>%(start_time)s</strong> 에 시작되었으며\n <strong>%(stop_time)s</strong> 에 종료되었습니다."
 
 msgid "You have an infinite number of tokens."
 msgstr "토큰을 무한히 가지고 있습니다."
@@ -637,15 +637,15 @@ msgid "By clicking on the button below you can start your time frame."
 msgstr "아래의 대회 참가 버튼을 누르면 자신의 타임 프레임이 시작됩니다.\n\n "
 
 #, python-format
-msgid "You started your time frame at %(start_time)s."
-msgstr "타임 프레임을 %(start_time)s 에 시작시켰습니다.\n\n "
+msgid "You started your time frame at <strong>%(start_time)s</strong>."
+msgstr "타임 프레임을 <strong>%(start_time)s</strong> 에 시작시켰습니다.\n\n "
 
 msgid "You can submit solutions until the end of the time frame or until the end of the contest, whatever comes first."
 msgstr "자신에게 주어진 타임 프레임 이내에서만 채점을 제출할 수 있습니다. 하지만, 자신의 타임 프레임이 남아있다고 하더라도 대회 종료전까지만 채점을 제출할 수 있습니다."
 
 #, python-format
-msgid "You started your time frame at %(start_time)s and you already finished it."
-msgstr "타임 프레임을 %(start_time)s 에 시작시켰고 주어진 타임 프레임을 모두 사용하였습니다."
+msgid "You started your time frame at <strong>%(start_time)s</strong> and you already finished it."
+msgstr "타임 프레임을 <strong>%(start_time)s</strong> 에 시작시켰고 주어진 타임 프레임을 모두 사용하였습니다."
 
 msgid "There's nothing you can do now."
 msgstr "더 이상 대회에 참여할 수 없습니다."

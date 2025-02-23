@@ -88,35 +88,73 @@ CMS.CWSUtils.prototype.update_notifications = function(hush) {
 };
 
 
+CMS.CWSUtils.prototype.displayToast = (title, text, level) => {
+    const toastContainer = document.getElementById("notifications");
+
+    let message;
+    if (title && text) {
+        message = `${title}: ${text}`;
+    } else {
+        message = title || text;
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "toast align-items-center rounded-3 bg-opacity-25 border-2";
+    toast.role = "alert";
+    toast.ariaAtomic = "true";
+    toast.ariaLive = "assertive";
+    toast.innerHTML = `\
+<div class="d-flex align-items-center">
+    <div class="toast-body">
+        <h5 class="${title && text ? "" : "mb-0 "}fw-bold">${title}</h5>
+        <span class="fw-semibold">${text}</span>
+    </div>
+    <button type="button" class="btn-close me-3 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+</div>`
+    toast.addEventListener("hidden.bs.toast", () => {
+        toast.remove();
+    });
+
+    const toastBody = toast.querySelector(".toast-body");
+    level = level || "warning"; // defaults to warning
+    if (level === "success") {
+        toast.classList.add("bg-success", "border-success-subtle");
+        toastBody.classList.add("text-success-emphasis");
+    } else if (level === "warning") {
+        toast.classList.add("bg-warning", "border-warning-subtle");
+        toastBody.classList.add("text-warning-emphasis");
+    } else if (level === "danger" || level === "error") {
+        // "error" is an alias for "danger", for compatibility
+        toast.classList.add("bg-danger", "border-danger-subtle");
+        toastBody.classList.add("text-danger-emphasis");
+    } else if (level === "info") {
+        toast.classList.add("bg-info", "border-info-subtle");
+        toastBody.classList.add("text-info-emphasis");
+    }
+
+    toastContainer.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast, { autohide: false });
+    bsToast.show();
+}
+
+
 CMS.CWSUtils.prototype.display_notification = function(type, timestamp,
                                                        subject, text,
                                                        level, hush) {
-    // TODO somehow display timestamp, subject and text
-
-    var alert = $('<div class="alert alert-block notification">' +
-                  '<a class="close" data-dismiss="alert" href="#">×</a>' +
-                  '<h4 class="alert-heading"></h4>' +
-                  '</div>');
+    // TODO: display timestamp and (optional) text
 
     if (type == "message") {
-        alert.children("h4").text($("#translation_new_message").text());
+        const title = document.getElementById("translation_new_message").innerText;
+        this.displayToast(title, subject || text, level);
     } else if (type == "announcement") {
-        alert.children("h4").text($("#translation_new_announcement").text());
+        const title = document.getElementById("translation_new_announcement").innerText;
+        this.displayToast(title, subject, level);
     } else if (type == "question") {
-        alert.children("h4").text($("#translation_new_answer").text());
+        const title = document.getElementById("translation_new_answer").innerText;
+        this.displayToast(title, subject || text, level);
     } else if (type == "notification") {
-        alert.children("h4").text(subject);
-        alert.append($("<span>" + text + "</span>"));
+        this.displayToast(subject, text, level);
     }
-
-    // The "warning" level is the default, so no check needed.
-    if (level == "error") {
-        alert.addClass("alert-error");
-    } else if (level == "success") {
-        alert.addClass("alert-success");
-    }
-
-    $("#notifications").prepend(alert);
 
     // Trigger a desktop notification as well (but only if it's needed)
     if (type !== "notification" && !hush) {
@@ -321,9 +359,9 @@ CMS.CWSUtils.prototype.rel_to_abs = function(sRelPath) {
     return sDir + sPath.substr(nStart);
 };
 
-CMS.CWSUtils.prototype.switch_lang = function() {
+CMS.CWSUtils.prototype.switch_lang = function(lang) {
     var cookie_path = this.rel_to_abs(this.contest_url() + "/").slice(0, -1) || "/";
-    var lang = $("#lang").val();
+    console.log(lang);
     if (lang === "") {
         document.cookie = "language="
             + "; expires=Thu, 01 Jan 1970 00:00:00 GMT"
@@ -384,4 +422,3 @@ CMS.CWSUtils.filter_languages = function(options, inputs) {
         }
     }
 };
-
