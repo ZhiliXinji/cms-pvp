@@ -34,6 +34,7 @@ from sqlalchemy.schema import Column, ForeignKey, CheckConstraint, \
     UniqueConstraint, ForeignKeyConstraint
 from sqlalchemy.types import Boolean, Integer, Float, String, Unicode, \
     Interval, Enum, BigInteger
+from sqlalchemy import event
 
 from cms import TOKEN_MODE_DISABLED, TOKEN_MODE_FINITE, TOKEN_MODE_INFINITE, \
     FEEDBACK_LEVEL_FULL, FEEDBACK_LEVEL_RESTRICTED
@@ -265,6 +266,33 @@ class Task(Base):
         passive_deletes=True,
         back_populates="task")
 
+    pvp_batch = Column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    def validate_score_mode(self):
+        if self.datasets and any(
+            dataset.task_type == "PvP" for dataset in self.datasets
+        ):
+            if self.score_mode != SCORE_MODE_MAX_TOKENED_LAST:
+                raise ValueError(
+                    "When task_type is 'PvP', score_mode must be SCORE_MODE_MAX_TOKENED_LAST."
+                )
+        if self.datasets and any(
+            dataset.task_type == "PvP" for dataset in self.datasets
+        ):
+            if self.token_mode != TOKEN_MODE_DISABLED:
+                raise ValueError(
+                    "When task_type is 'PvP', token_mode must be TOKEN_MODE_DISABLED."
+                )
+
+
+@event.listens_for(Task, "before_insert")
+@event.listens_for(Task, "before_update")
+def validate_task_score_mode(mapper, connection, target):
+    target.validate_score_mode()
 
 class Statement(Base):
     """Class to store a translation of the task statement.

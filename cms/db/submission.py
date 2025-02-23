@@ -47,9 +47,7 @@ class Submission(Base):
     __tablename__ = 'submissions'
 
     # Auto increment primary key.
-    id = Column(
-        Integer,
-        primary_key=True)
+    id = Column(Integer, primary_key=True)
 
     # User and Contest, thus Participation (id and object) that did the
     # submission.
@@ -97,6 +95,13 @@ class Submission(Base):
         default=True,
     )
 
+    # Batch number for PvP matches
+    pvp_batch = Column(
+        Integer,
+        nullable=True,
+        default=None,
+    )
+
     @property
     def short_comment(self):
         """The first line of the comment."""
@@ -124,6 +129,15 @@ class Submission(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         back_populates="submission")
+
+    @property
+    def dataset(self):
+        """Return the dataset of the task of this submission.
+
+        return (Dataset): the dataset of the task of this submission.
+
+        """
+        return self.task.active_dataset
 
     def get_result(self, dataset=None):
         """Return the result associated to a dataset.

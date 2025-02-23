@@ -181,6 +181,9 @@ def _task_score_max_tokened_last(score_details_tokened):
     the maximum score amongst all tokened submissions and the last submission
     (not yet computed scores count as 0.0).
 
+    NOTE: For PvP problems, they should use this mode and disable the usage of tokens, or it'll cause unfair results.
+    TODO: Disable other options for PvP problems.
+
     score_details_tokened ([(float|None, object|None, bool)]): a tuple for each
         submission of the user in the task, containing score, score details
         (each None if not scored yet) and if the submission was tokened.
