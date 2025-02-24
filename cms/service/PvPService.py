@@ -379,8 +379,8 @@ class PvPService(TriggeredService):
                 "updating score for testcase %s in task %d", tc.codename, task_id
             )
             sorted_players = sorted(
-                competition_sys[tc.id].players.items(),
-                key=lambda item: item[1],
+                list(participations.items()),
+                key=lambda p: competition_sys[tc.id].players[p[0]],
                 reverse=True,
             )
             all_num = len(sorted_players)
