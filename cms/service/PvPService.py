@@ -239,18 +239,21 @@ class PvPExecutor(Executor):
                 )
                 if match is not None:
                     matches.append(match)
-
-        batch.rest_matches = len(matches)
         session.commit()
 
+        batch.rest_matches = len(matches)
         if batch.rest_matches == 0:
             return
 
         for match in matches:
             session.add(match)
-            session.commit()
+        session.commit()
+
+        for match in matches:
             session.add(match.get_result_or_create())
-            session.commit()
+        session.commit()
+
+        for match in matches:
             self.evaluation_service.new_match(match_id=match.id)
 
         return True
@@ -369,9 +372,6 @@ class PvPService(TriggeredService):
         evaluation = submission_result.get_evaluation(testcase)
         evaluation.outcome = score
         evaluation.text = text
-
-        session.commit()
-
     def update_score(self, session, task_id, participations, competition_sys):
         task = Task.get_from_id(task_id, session)
         for tc in task.active_dataset.testcases.values():
@@ -400,19 +400,24 @@ class PvPService(TriggeredService):
                         )
                     ],
                 )
+            session.commit()
 
+            submission_ids = []
             for submission_id in participations.values():
                 submission = Submission.get_from_id(submission_id, session)
                 if submission is not None:
+                    submission_ids.append(submission_id)
                     result = submission.get_result()
                     if result:
                         result.invalidate_score()
                         result.set_evaluation_outcome()
-                    self.scoring_service.new_evaluation(
-                        submission_id=submission.id,
-                        dataset_id=task.active_dataset.id,
-                    )
             session.commit()
+
+            for submission_id in submission_ids:
+                self.scoring_service.new_evaluation(
+                    submission_id=submission_id,
+                    dataset_id=task.active_dataset.id,
+                )
         return True
 
     def batch_ended(self, batch_id):
