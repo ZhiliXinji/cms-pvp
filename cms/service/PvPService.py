@@ -78,7 +78,7 @@ class Elo:
     def update_elo(rating, expected, actual, k=32):
         return rating + k * (actual - expected)
 
-    def update_scores(self, player_a, player_b, result1, result2):
+    def update_scores(self, player_a, player_b, result1, result2, k):
         expected_a = Elo.expected_score(self.players[player_a], self.players[player_b])
         expected_b = Elo.expected_score(self.players[player_b], self.players[player_a])
 
@@ -87,10 +87,10 @@ class Elo:
         result2 /= sum
 
         self.players[player_a] = self.update_elo(
-            self.players[player_a], expected_a, result1
+            self.players[player_a], expected_a, result1, k
         )
         self.players[player_b] = self.update_elo(
-            self.players[player_b], expected_b, result2
+            self.players[player_b], expected_b, result2, k
         )
 
     def to_scores(self):
@@ -250,7 +250,6 @@ class PvPExecutor(Executor):
                     for tc in task.active_dataset.testcases.values():
                         competition_sys[tc.id].players[p.id] = 0.0
 
-            # TODO
             if len(participations) < 2:
                 logger.warning("Batch %d has less than 2 players. Exiting." % batch_id)
                 return False
@@ -269,21 +268,45 @@ class PvPExecutor(Executor):
         )
 
         assert batch.rest_matches == 0
+
         matches = []
         for tc in task.active_dataset.testcases.values():
-            participation_sorted = sorted(
-                list(participations.items()),
-                key=lambda p: competition_sys[tc.id].players[p[0]],
-                reverse=True,
-            )
-            if len(participation_sorted) % 2 == 1:
-                participation_sorted.pop(
-                    random.randint(0, len(participation_sorted) - 1)
-                )
-            for i in range(0, len(participation_sorted) - 1, 2):
+            players = [
+                (p_id, competition_sys[tc.id].players[p_id])
+                for p_id in participations.keys()
+            ]
+            random.shuffle(players)
+
+            bye_p = []
+            matched = set()
+            for p_id, rating in players:
+                if p_id in matched:
+                    continue
+
+                initial_window = 100
+                max_window = 600
+
+                window = initial_window
+                candidates = []
+                while window <= max_window and not candidates:
+                    candidates = list(
+                        filter(
+                            lambda p: abs(p[1] - rating) <= window
+                            and p[0] not in matched,
+                            players,
+                        )
+                    )
+                    window += 50
+
+                if not candidates:
+                    bye_p.append(p_id)
+                    matched.add(p_id)
+                    continue
+
+                opponent_id = random.choice(candidates)[0]
                 s1_id, s2_id = (
-                    participation_sorted[i][1],
-                    participation_sorted[i + 1][1],
+                    participations[p_id],
+                    participations[opponent_id],
                 )
                 match = self.create_match(
                     session,
@@ -506,6 +529,7 @@ class PvPService(TriggeredService):
                 match.submission2.participation_id,
                 float(outcomes[0].strip()),
                 float(outcomes[1].strip()),
+                40 if batch.rounds_id <= batch.rounds // 2 else 20,
             )
             if batch.rest_matches == 0:
                 if batch.rounds_id == batch.rounds:
