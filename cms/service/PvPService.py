@@ -56,13 +56,14 @@ from .pvpoperations import (
     get_operations,
     get_match_submission,
 )
+from math import ceil
 
 logger = logging.getLogger(__name__)
 
 SYS_ELO = "elo"
 
 class Elo:
-    S_RATING = 1200.0
+    S_RATING = 1500.0
 
     players = {}
 
@@ -91,6 +92,57 @@ class Elo:
         self.players[player_b] = self.update_elo(
             self.players[player_b], expected_b, result2
         )
+
+    def to_scores(self):
+        div = [
+            (10, 0.85, 1.00),
+            (30, 0.60, 0.85),
+            (30, 0.35, 0.60),
+            (20, 0.20, 0.35),
+            (10, 0.05, 0.20),
+        ]
+
+        def calc_score(rating, min_rating, max_rating, min_score, max_score):
+            assert min_rating <= rating <= max_rating
+            if min_rating == max_rating:
+                return max_score
+            return (max_score - min_score) * (rating - min_rating) / (
+                max_rating - min_rating
+            ) + min_score
+
+        ratings = sorted(list(self.players.items()), key=lambda x: x[1], reverse=True)
+        scores = []
+        total_number = len(list(filter(lambda x: x[1] > 0, ratings)))
+
+        last = 0
+        sum_percent = 0
+        for percent, min_score, max_score in div:
+            sum_percent += percent
+            pos = int(ceil(total_number * sum_percent / 100))
+            if last == pos:
+                continue
+            max_rating = ratings[last][1]
+            min_rating = ratings[pos - 1][1]
+            for p_id, rating in ratings[last:pos]:
+                scores.append(
+                    (
+                        p_id,
+                        calc_score(
+                            rating,
+                            min_rating,
+                            max_rating,
+                            min_score,
+                            max_score,
+                        ),
+                    )
+                )
+            last = pos
+
+        for p in scores[last:]:
+            scores.append((p[0], 0.0))
+
+        return scores
+
 
 match_mode = SYS_ELO
 
@@ -378,25 +430,19 @@ class PvPService(TriggeredService):
             logger.info(
                 "updating score for testcase %s in task %d", tc.codename, task_id
             )
-            sorted_players = sorted(
-                list(participations.items()),
-                key=lambda p: competition_sys[tc.id].players[p[0]],
-                reverse=True,
-            )
-            all_num = len(sorted_players)
-            for rank, (participation_id, score) in enumerate(sorted_players, start=1):
-                new_score = 1.0 / rank
+            total_num = len(competition_sys[tc.id].players)
+            for rank, (p_id, score) in enumerate(competition_sys[tc.id].to_scores()):
                 self.update_single_score(
                     session,
-                    participations[participation_id],
+                    participations[p_id],
                     tc,
-                    new_score,
+                    score,
                     [
                         "Your rating: %0.2f. Rank among all participations: %d/%d."
                         % (
-                            competition_sys[tc.id].players[participation_id],
+                            competition_sys[tc.id].players[p_id],
                             rank,
-                            all_num,
+                            total_num,
                         )
                     ],
                 )
