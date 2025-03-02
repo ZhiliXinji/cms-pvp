@@ -224,6 +224,10 @@ class PvPExecutor(Executor):
                 key=lambda p: competition_sys[tc.id].players[p[0]],
                 reverse=True,
             )
+            if len(participation_sorted) % 2 == 1:
+                participation_sorted.pop(
+                    random.randint(0, len(participation_sorted) - 1)
+                )
             for i in range(0, len(participation_sorted) - 1, 2):
                 s1_id, s2_id = (
                     participation_sorted[i][1],
