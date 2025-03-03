@@ -74,9 +74,10 @@ class RemoteServiceBase:
     will be fired.
 
     """
-    # Incoming messages larger than 1 MiB are dropped to avoid DOS
+
+    # Incoming messages larger than 4 MiB are dropped to avoid DOS
     # attacks. XXX Check that this size is sensible.
-    MAX_MESSAGE_SIZE = 1024 * 1024
+    MAX_MESSAGE_SIZE = 1024 * 1024 * 4
 
     def __init__(self, remote_address):
         """Prepare to handle a connection with the given remote address.
