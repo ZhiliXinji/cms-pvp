@@ -299,8 +299,8 @@ class PvPExecutor(Executor):
                     window += 50
 
                 if not candidates:
-                    bye_p.append(p_id)
                     matched.add(p_id)
+                    bye_p.append(p_id)
                     continue
 
                 opponent_id = random.choice(candidates)[0]
@@ -308,6 +308,9 @@ class PvPExecutor(Executor):
                     participations[p_id],
                     participations[opponent_id],
                 )
+                matched.add(p_id)
+                matched.add(opponent_id)
+                assert s1_id is not None and s2_id is not None
                 match = self.create_match(
                     session,
                     make_datetime(),
