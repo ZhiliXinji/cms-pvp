@@ -457,7 +457,7 @@ class PvPService(TriggeredService):
             logger.info(
                 "updating score for testcase %s in task %d", tc.codename, task_id
             )
-            total_num = len(competition_sys[tc.id].players)
+            total_num = len(participations)
             for rank, (p_id, score) in enumerate(competition_sys[tc.id].to_scores()):
                 self.update_single_score(
                     session,
@@ -507,6 +507,7 @@ class PvPService(TriggeredService):
                 self.competition_sys[batch_id],
             )
             batch.end_evaluate()
+            session.commit()
 
     @rpc_method
     @with_post_finish_lock
