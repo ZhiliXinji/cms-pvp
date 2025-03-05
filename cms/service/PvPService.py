@@ -288,6 +288,8 @@ class PvPExecutor(Executor):
 
                 window = initial_window
                 candidates = []
+                # Avoid to fight against self.
+                matched.add(p_id)
                 while window <= max_window and not candidates:
                     candidates = list(
                         filter(
@@ -296,10 +298,10 @@ class PvPExecutor(Executor):
                             players,
                         )
                     )
+                    # Increase window if no candidates are found.
                     window += 50
 
                 if not candidates:
-                    matched.add(p_id)
                     bye_p.append(p_id)
                     continue
 
@@ -535,7 +537,7 @@ class PvPService(TriggeredService):
                 match.submission2.participation_id,
                 float(outcomes[0].strip()),
                 float(outcomes[1].strip()),
-                40 if batch.rounds_id <= batch.rounds // 2 else 20,
+                800 / (20 + 60 * batch.rounds_id / batch.rounds),
             )
             if batch.rest_matches == 0:
                 if batch.rounds_id == batch.rounds:
