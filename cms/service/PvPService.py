@@ -461,7 +461,9 @@ class PvPService(TriggeredService):
                 "updating score for testcase %s in task %d", tc.codename, task_id
             )
             total_num = len(participations)
-            for rank, (p_id, score) in enumerate(competition_sys[tc.id].to_scores()):
+            for rank, (p_id, score) in enumerate(
+                competition_sys[tc.id].to_scores(), start=1
+            ):
                 self.update_single_score(
                     session,
                     participations[p_id],
