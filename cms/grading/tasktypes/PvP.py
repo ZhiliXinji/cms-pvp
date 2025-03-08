@@ -382,8 +382,19 @@ class PvP(TaskType):
         #     but in practice is num_processes times that because the
         #     constraint on the total time can only be enforced after all user
         #     programs terminated.
+
+        # Start the user submissions compiled with the stub.
+        languages = [get_language(job.language_list[i]) for i in indices]
+
         manager_time_limit = max(
-            players * (job.time_limit + 1.0),
+            job.time_limit
+            + 1.0
+            + sum(
+                [
+                    job.time_limit * language.time_limit_multiplier + 1.0
+                    for language in languages
+                ]
+            ),
             config.trusted_sandbox_max_time_s,
         )
         manager = evaluation_step_before_run(
@@ -397,8 +408,6 @@ class PvP(TaskType):
             multiprocess=job.multithreaded_sandbox,
         )
 
-        # Start the user submissions compiled with the stub.
-        languages = [get_language(job.language_list[i]) for i in indices]
         main = [
             (
                 self.STUB_BASENAME
@@ -431,7 +440,7 @@ class PvP(TaskType):
             processes[i] = evaluation_step_before_run(
                 sandbox_user[i],
                 commands[-1],
-                job.time_limit,
+                job.time_limit * languages[i].time_limit_multiplier,
                 job.memory_limit,
                 dirs_map={fifo_dir[i]: (sandbox_fifo_dir[i], "rw")},
                 stdin_redirect=stdin_redirect,
