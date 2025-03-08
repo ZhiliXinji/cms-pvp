@@ -28,7 +28,7 @@
 import logging
 
 from cms import ServiceCoord, config
-from cms.db import SessionGen, Submission, Dataset, get_submission_results
+from cms.db import SessionGen, Submission, Dataset, Announcement, get_submission_results
 from cms.io import Executor, TriggeredService, rpc_method
 from cmscommon.datetime import make_datetime
 from .scoringoperations import ScoringOperation, get_operations
@@ -99,6 +99,16 @@ class ScoringExecutor(Executor):
                 submission_result.public_score_details, \
                 submission_result.ranking_score_details = \
                 score_type.compute_score(submission_result)
+            
+            if dataset.task_type != "PvP":
+                if submission_result.score == 100:
+                    if submission_result.submission.task.solved is False:
+                        submission_result.submission.task.solved = True
+                        text = "第一滴血! 选手 %s 第一个通过了 %s！" % \
+                            (submission.participation.user.first_name+submission.participation.user.last_name, submission.task.title)
+                        ann = Announcement(make_datetime(), submission_result.submission.task.name, text,
+                            contest=submission.participation.contest, admin=None)
+                        session.add(ann)
 
             # Store it.
             session.commit()
