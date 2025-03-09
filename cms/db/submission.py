@@ -276,6 +276,7 @@ class SubmissionResult(Base):
     EVALUATING = 3
     SCORING = 4
     SCORED = 5
+    DISCARDED = 6
 
     __tablename__ = 'submission_results'
     __table_args__ = (
@@ -357,6 +358,13 @@ class SubmissionResult(Base):
         Enum("ok", name="evaluation_outcome"),
         nullable=True)
 
+    # Represent if a submission is discarded. Used in PvP only.
+    # If a submission is discarded, then its status will be
+    # equivalent to COMPILATION_FAILED, plus this flag = "discarded".
+    submission_discarded = Column(
+        Enum("discarded", name="submission_discarded"), nullable=True
+    )
+
     # Number of failures during evaluation.
     evaluation_tries = Column(
         Integer,
@@ -413,7 +421,9 @@ class SubmissionResult(Base):
         """Return the status of this object.
 
         """
-        if not self.compiled():
+        if self.discarded():
+            return SubmissionResult.DISCARDED
+        elif not self.compiled():
             return SubmissionResult.COMPILING
         elif self.compilation_failed():
             return SubmissionResult.COMPILATION_FAILED
@@ -473,6 +483,14 @@ class SubmissionResult(Base):
 
         """
         return self.compilation_outcome is not None
+
+    def discarded(self):
+        """Return whether the submission result has been discarded.
+
+        return (bool): True if discarded, False otherwise.
+
+        """
+        return self.compilation_failed() and self.submission_discarded == "discarded"
 
     @staticmethod
     def filter_compiled():
@@ -597,6 +615,17 @@ class SubmissionResult(Base):
         self.public_score_details = None
         self.ranking_score_details = None
 
+    def set_discarded(self):
+        """Set submission status to compilation failed, and no further
+        action will be applied to it.
+
+        """
+        self.set_compilation_outcome(False)
+        self.invalidate_score()
+        self.score = 0.0
+        self.score_details = "Discarded because of newer submission."
+        self.submission_discarded = "discarded"
+
     def set_compilation_outcome(self, success):
         """Set the compilation outcome based on the success.
 
@@ -610,6 +639,7 @@ class SubmissionResult(Base):
 
         """
         self.evaluation_outcome = "ok"
+
 
 
 class Executable(Base):

@@ -35,6 +35,7 @@ from cms.io import Executor, TriggeredService, rpc_method
 from cmscommon.datetime import make_datetime
 from .pvpoperations import PvPOperation
 from functools import wraps
+import math
 
 import gevent.lock
 from cms import utf8_decoder
@@ -195,7 +196,14 @@ class PvPExecutor(Executor):
         return match
 
     def mark_match_submissions(self, session, task_id):
-        """Mark the submissions that will be used in the match."""
+        """Mark the submissions that will be used in the match, and then discard old submissions."""
+
+        def invalidate_old_submission(submission: Submission):
+            if submission.task.active_dataset.task_type != "PvP":
+                return
+            session = submission.sa_session()
+
+
         task = Task.get_from_id(task_id, session)
         for p in task.contest.participations:
             submission = get_last_submission(session, p, task)
@@ -203,7 +211,10 @@ class PvPExecutor(Executor):
             if submission:
                 submission.pvp_batch = task.pvp_batch
                 result = submission.get_result_or_create()
-                result.invalidate_score()
+                result.invalidate_evaluation()
+
+        invalidate_old_submission(submission)
+
         session.commit()
         return True
 
@@ -438,7 +449,9 @@ class PvPService(TriggeredService):
         return counter
 
     def update_single_score(self, session, submission_id, testcase, score, text):
-        """TODO: docstring."""
+        """
+        Update the score of a submission in a certain testcase.
+        """
         submission = Submission.get_from_id(submission_id, session)
         if not submission:
             return False
@@ -482,22 +495,20 @@ class PvPService(TriggeredService):
                 )
             session.commit()
 
-            submission_ids = []
-            for submission_id in participations.values():
-                submission = Submission.get_from_id(submission_id, session)
-                if submission is not None:
-                    submission_ids.append(submission_id)
-                    result = submission.get_result()
-                    if result:
-                        result.invalidate_score()
-                        result.set_evaluation_outcome()
-            session.commit()
-
-            for submission_id in submission_ids:
-                self.scoring_service.new_evaluation(
-                    submission_id=submission_id,
-                    dataset_id=task.active_dataset.id,
-                )
+        submission_ids = participations.values()
+        for submission_id in submission_ids:
+            submission = Submission.get_from_id(submission_id, session)
+            if submission is not None:
+                result = submission.get_result()
+                if result:
+                    result.invalidate_score()
+                    result.set_evaluation_outcome()
+        session.commit()
+        for submission_id in submission_ids:
+            self.scoring_service.new_evaluation(
+                submission_id=submission_id,
+                dataset_id=task.active_dataset.id,
+            )
         return True
 
     def batch_ended(self, batch_id):
@@ -537,7 +548,7 @@ class PvPService(TriggeredService):
                 match.submission2.participation_id,
                 float(outcomes[0].strip()),
                 float(outcomes[1].strip()),
-                800 / (20 + 60 * batch.rounds_id / batch.rounds),
+                40 * 4 ** -(batch.rounds_id / batch.rounds),
             )
             if batch.rest_matches == 0:
                 if batch.rounds_id == batch.rounds:
