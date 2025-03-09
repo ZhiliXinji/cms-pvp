@@ -56,13 +56,14 @@ from .pvpoperations import (
     get_operations,
     get_match_submission,
 )
+from math import ceil
 
 logger = logging.getLogger(__name__)
 
 SYS_ELO = "elo"
 
 class Elo:
-    S_RATING = 1200.0
+    S_RATING = 1500.0
 
     players = {}
 
@@ -77,16 +78,71 @@ class Elo:
     def update_elo(rating, expected, actual, k=32):
         return rating + k * (actual - expected)
 
-    def update_scores(self, player_a, player_b, result):
+    def update_scores(self, player_a, player_b, result1, result2, k):
         expected_a = Elo.expected_score(self.players[player_a], self.players[player_b])
         expected_b = Elo.expected_score(self.players[player_b], self.players[player_a])
 
+        sum = result1 + result2
+        result1 /= sum
+        result2 /= sum
+
         self.players[player_a] = self.update_elo(
-            self.players[player_a], expected_a, result
+            self.players[player_a], expected_a, result1, k
         )
         self.players[player_b] = self.update_elo(
-            self.players[player_b], expected_b, 1.0 - result
+            self.players[player_b], expected_b, result2, k
         )
+
+    def to_scores(self):
+        div = [
+            (10, 0.85, 1.00),
+            (30, 0.60, 0.85),
+            (30, 0.35, 0.60),
+            (20, 0.20, 0.35),
+            (10, 0.05, 0.20),
+        ]
+
+        def calc_score(rating, min_rating, max_rating, min_score, max_score):
+            assert min_rating <= rating <= max_rating
+            if min_rating == max_rating:
+                return max_score
+            return (max_score - min_score) * (rating - min_rating) / (
+                max_rating - min_rating
+            ) + min_score
+
+        ratings = sorted(list(self.players.items()), key=lambda x: x[1], reverse=True)
+        scores = []
+        total_number = len(list(filter(lambda x: x[1] > 0, ratings)))
+
+        last = 0
+        sum_percent = 0
+        for percent, min_score, max_score in div:
+            sum_percent += percent
+            pos = int(ceil(total_number * sum_percent / 100))
+            if last == pos:
+                continue
+            max_rating = ratings[last][1]
+            min_rating = ratings[pos - 1][1]
+            for p_id, rating in ratings[last:pos]:
+                scores.append(
+                    (
+                        p_id,
+                        calc_score(
+                            rating,
+                            min_rating,
+                            max_rating,
+                            min_score,
+                            max_score,
+                        ),
+                    )
+                )
+            last = pos
+
+        for p in scores[last:]:
+            scores.append((p[0], 0.0))
+
+        return scores
+
 
 match_mode = SYS_ELO
 
@@ -194,7 +250,6 @@ class PvPExecutor(Executor):
                     for tc in task.active_dataset.testcases.values():
                         competition_sys[tc.id].players[p.id] = 0.0
 
-            # TODO
             if len(participations) < 2:
                 logger.warning("Batch %d has less than 2 players. Exiting." % batch_id)
                 return False
@@ -213,18 +268,51 @@ class PvPExecutor(Executor):
         )
 
         assert batch.rest_matches == 0
+
         matches = []
         for tc in task.active_dataset.testcases.values():
-            participation_sorted = sorted(
-                list(participations.items()),
-                key=lambda p: competition_sys[tc.id].players[p[0]],
-                reverse=True,
-            )
-            for i in range(0, len(participation_sorted) - 1, 2):
+            players = [
+                (p_id, competition_sys[tc.id].players[p_id])
+                for p_id in participations.keys()
+            ]
+            random.shuffle(players)
+
+            bye_p = []
+            matched = set()
+            for p_id, rating in players:
+                if p_id in matched:
+                    continue
+
+                initial_window = 100
+                max_window = 600
+
+                window = initial_window
+                candidates = []
+                # Avoid to fight against self.
+                matched.add(p_id)
+                while window <= max_window and not candidates:
+                    candidates = list(
+                        filter(
+                            lambda p: abs(p[1] - rating) <= window
+                            and p[0] not in matched,
+                            players,
+                        )
+                    )
+                    # Increase window if no candidates are found.
+                    window += 50
+
+                if not candidates:
+                    bye_p.append(p_id)
+                    continue
+
+                opponent_id = random.choice(candidates)[0]
                 s1_id, s2_id = (
-                    participation_sorted[i][1],
-                    participation_sorted[i + 1][1],
+                    participations[p_id],
+                    participations[opponent_id],
                 )
+                matched.add(p_id)
+                matched.add(opponent_id)
+                assert s1_id is not None and s2_id is not None
                 match = self.create_match(
                     session,
                     make_datetime(),
@@ -235,18 +323,21 @@ class PvPExecutor(Executor):
                 )
                 if match is not None:
                     matches.append(match)
-
-        batch.rest_matches = len(matches)
         session.commit()
 
+        batch.rest_matches = len(matches)
         if batch.rest_matches == 0:
             return
 
         for match in matches:
             session.add(match)
-            session.commit()
+        session.commit()
+
+        for match in matches:
             session.add(match.get_result_or_create())
-            session.commit()
+        session.commit()
+
+        for match in matches:
             self.evaluation_service.new_match(match_id=match.id)
 
         return True
@@ -365,50 +456,48 @@ class PvPService(TriggeredService):
         evaluation = submission_result.get_evaluation(testcase)
         evaluation.outcome = score
         evaluation.text = text
-
-        session.commit()
-
     def update_score(self, session, task_id, participations, competition_sys):
         task = Task.get_from_id(task_id, session)
         for tc in task.active_dataset.testcases.values():
             logger.info(
                 "updating score for testcase %s in task %d", tc.codename, task_id
             )
-            sorted_players = sorted(
-                competition_sys[tc.id].players.items(),
-                key=lambda item: item[1],
-                reverse=True,
-            )
-            all_num = len(sorted_players)
-            for rank, (participation_id, score) in enumerate(sorted_players, start=1):
-                new_score = 1.0 / rank
+            total_num = len(participations)
+            for rank, (p_id, score) in enumerate(
+                competition_sys[tc.id].to_scores(), start=1
+            ):
                 self.update_single_score(
                     session,
-                    participations[participation_id],
+                    participations[p_id],
                     tc,
-                    new_score,
+                    score,
                     [
                         "Your rating: %0.2f. Rank among all participations: %d/%d."
                         % (
-                            competition_sys[tc.id].players[participation_id],
+                            competition_sys[tc.id].players[p_id],
                             rank,
-                            all_num,
+                            total_num,
                         )
                     ],
                 )
+            session.commit()
 
+            submission_ids = []
             for submission_id in participations.values():
                 submission = Submission.get_from_id(submission_id, session)
                 if submission is not None:
+                    submission_ids.append(submission_id)
                     result = submission.get_result()
                     if result:
                         result.invalidate_score()
                         result.set_evaluation_outcome()
-                    self.scoring_service.new_evaluation(
-                        submission_id=submission.id,
-                        dataset_id=task.active_dataset.id,
-                    )
             session.commit()
+
+            for submission_id in submission_ids:
+                self.scoring_service.new_evaluation(
+                    submission_id=submission_id,
+                    dataset_id=task.active_dataset.id,
+                )
         return True
 
     def batch_ended(self, batch_id):
@@ -425,6 +514,7 @@ class PvPService(TriggeredService):
                 self.competition_sys[batch_id],
             )
             batch.end_evaluate()
+            session.commit()
 
     @rpc_method
     @with_post_finish_lock
@@ -441,10 +531,13 @@ class PvPService(TriggeredService):
             session.commit()
             assert match.testcase_id is not None
             assert len(match.result.matchings) == 1
+            outcomes = match.result.matchings[0].outcome.split()
             self.competition_sys[batch.id][match.testcase_id].update_scores(
                 match.submission1.participation_id,
                 match.submission2.participation_id,
-                float(match.result.matchings[0].outcome.split()[0].strip()),
+                float(outcomes[0].strip()),
+                float(outcomes[1].strip()),
+                800 / (20 + 60 * batch.rounds_id / batch.rounds),
             )
             if batch.rest_matches == 0:
                 if batch.rounds_id == batch.rounds:

@@ -123,9 +123,9 @@ version = 44
 engine = create_engine(
     config.database,
     echo=config.database_debug,
-    pool_size=32,
-    pool_timeout=10,
-    pool_recycle=15,
+    pool_size=400,
+    pool_timeout=30,
+    pool_recycle=60,
 )
 
 metadata = MetaData(engine)

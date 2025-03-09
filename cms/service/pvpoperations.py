@@ -57,10 +57,19 @@ def get_operations(session, timestamp):
                 task_type_object = task.active_dataset.task_type_object
                 if task_type_object.auto_eval != "enabled":
                     continue
-                last_time = contest.start if task.pvp_batch == 0 \
-                    else session.query(Batch).filter(Batch.task_id == task.id).\
-                    order_by(Batch.timestamp.desc()).first().timestamp
-                if timestamp - last_time >= task_type_object.interval:
+                last_batch = (
+                    (contest.start, Batch.BATCH_EVALUATED)
+                    if task.pvp_batch == 0
+                    else session.query(Batch)
+                    .filter(Batch.task_id == task.id)
+                    .order_by(Batch.timestamp.desc())
+                    .with_entities(Batch.timestamp, Batch.status)
+                    .first()
+                )
+                if (
+                    last_batch[1] != Batch.BATCH_EVALUATING
+                    and timestamp - last_batch[0] >= task_type_object.interval
+                ):
                     new_batch = Batch(
                         task=task,
                         timestamp=timestamp,

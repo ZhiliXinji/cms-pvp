@@ -311,8 +311,15 @@ class Communication(TaskType):
         #     but in practice is num_processes times that because the
         #     constraint on the total time can only be enforced after all user
         #     programs terminated.
-        manager_time_limit = max(self.num_processes * (job.time_limit + 1.0),
-                                 config.trusted_sandbox_max_time_s)
+
+        # Start the user submissions compiled with the stub.
+        language = get_language(job.language)
+        time_limit = job.time_limit * language.time_limit_multiplier
+
+        manager_time_limit = max(
+            self.num_processes * (time_limit + 1.0),
+            config.trusted_sandbox_max_time_s,
+        )
         manager = evaluation_step_before_run(
             sandbox_mgr,
             manager_command,
@@ -324,8 +331,6 @@ class Communication(TaskType):
             stdin_redirect=self.INPUT_FILENAME,
             multiprocess=job.multithreaded_sandbox)
 
-        # Start the user submissions compiled with the stub.
-        language = get_language(job.language)
         main = self.STUB_BASENAME if self._uses_stub() \
                else os.path.splitext(executable_filename)[0]
         processes = [None for i in indices]
@@ -353,12 +358,13 @@ class Communication(TaskType):
             processes[i] = evaluation_step_before_run(
                 sandbox_user[i],
                 commands[-1],
-                job.time_limit,
+                time_limit,
                 job.memory_limit,
                 dirs_map={fifo_dir[i]: (sandbox_fifo_dir[i], "rw")},
                 stdin_redirect=stdin_redirect,
                 stdout_redirect=stdout_redirect,
-                multiprocess=job.multithreaded_sandbox)
+                multiprocess=job.multithreaded_sandbox,
+            )
 
         # Wait for the processes to conclude, without blocking them on I/O.
         wait_without_std(processes + [manager])
@@ -376,8 +382,11 @@ class Communication(TaskType):
         # The actual running time is the sum of every user process, but each
         # sandbox can only check its own; if the sum is greater than the time
         # limit we adjust the result.
-        if box_success_user and evaluation_success_user and \
-                stats_user["execution_time"] >= job.time_limit:
+        if (
+            box_success_user
+            and evaluation_success_user
+            and stats_user["execution_time"] >= time_limit
+        ):
             evaluation_success_user = False
             stats_user['exit_status'] = Sandbox.EXIT_TIMEOUT
 

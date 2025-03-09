@@ -1163,6 +1163,7 @@ class EvaluationService(TriggeredService):
             session.commit()
 
     @rpc_method
+    @with_post_finish_lock
     def new_match(self, match_id):
         """This RPC prompts ES of the existence of a new
         match. ES takes the right countermeasures, i.e., it

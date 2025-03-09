@@ -272,6 +272,12 @@ class Task(Base):
         default=0,
     )
 
+    solved = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
     def validate_score_mode(self):
         if self.datasets and any(
             dataset.task_type == "PvP" for dataset in self.datasets
