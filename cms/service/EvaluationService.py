@@ -321,18 +321,15 @@ class EvaluationService(TriggeredService):
                          .total_seconds(),
                          immediately=False)
 
-    def make_dummy_evaluations(self, operation: ESOperation):
-        """Make all possible dummy evaluations of the submissions that related
-        to the match ESOperation, used to store outcome in PvP task.
+    def prepare_pvp_evaluation(self, operation: ESOperation):
+        """Preparation steps for a submission of a PvP task, including making dummy
+        evaluations to store outcomes and invalidating old submissions.
 
         operation (ESOperation): match or evaluation operation that we want the evaluations
                                 for both sides.
 
-        return (int): Number of added evaluations.
-
         """
 
-        num = 0
         with SessionGen() as session:
             dataset = Dataset.get_from_id(operation.dataset_id, session)
 
@@ -340,7 +337,7 @@ class EvaluationService(TriggeredService):
                 operation.type_ not in [ESOperation.EVALUATION, ESOperation.MATCH]
                 or dataset.task_type != "PvP"
             ):
-                return 0
+                return
 
             testcase = dataset.testcases[operation.testcase_codename]
             testcase_id = None
@@ -357,6 +354,8 @@ class EvaluationService(TriggeredService):
                     evaluation.testcase_id
                     for evaluation in submission_result.evaluations
                 )
+
+                # Make dummy evaluations to store outcomes.
                 if testcase.id not in evaluated_testcase_ids and (
                     testcase_id is None or testcase.id == testcase_id
                 ):
@@ -372,10 +371,25 @@ class EvaluationService(TriggeredService):
                     )
                     session.add(evaluation)
                     submission_result.evaluations += [evaluation]
-                    num += 1
+
+                # Invalidate old submission results.
+                if operation.type_ == ESOperation.EVALUATION:
+                    submission_results = (
+                        session.query(SubmissionResult)
+                        .join(SubmissionResult.submission)
+                        .filter(SubmissionResult.filter_compiled())
+                        .filter(
+                            Submission.participation_id == submission.participation_id
+                        )
+                        .filter(Submission.task_id == submission.task_id)
+                        .filter(Submission.timestamp < submission.timestamp)
+                        .all()
+                    )
+                    for sr in submission_results:
+                        if not sr.discarded():
+                            sr.set_discarded()
+                    session.commit()
             session.commit()
-        logger.debug("Add %d dummy evaluation(s).", num)
-        return num
 
     def submission_enqueue_operations(self, submission):
         """Push in queue the operations required by a submission.
@@ -404,7 +418,7 @@ class EvaluationService(TriggeredService):
                 ) and self.enqueue(operation, priority, timestamp):
                     new_operations += 1
                 else:
-                    self.make_dummy_evaluations(operation)
+                    self.prepare_pvp_evaluation(operation)
 
             # If we got 0 operations, but the submission result is to
             # evaluate, it means that we just need to finalize the
@@ -439,7 +453,7 @@ class EvaluationService(TriggeredService):
                 number_of_operations += 1
                 if self.enqueue(operation, priority, timestamp):
                     new_operations += 1
-                    self.make_dummy_evaluations(operation)
+                    self.prepare_pvp_evaluation(operation)
 
             # If we got 0 operations, but the match result is to
             # evaluate, it means that we just need to finalize the
@@ -495,7 +509,7 @@ class EvaluationService(TriggeredService):
                 ) and self.enqueue(operation, priority, timestamp):
                     counter += 1
                 else:
-                    self.make_dummy_evaluations(operation)
+                    self.prepare_pvp_evaluation(operation)
 
             for operation, priority, timestamp in get_user_tests_operations(
                 session, self.contest_id
@@ -508,7 +522,7 @@ class EvaluationService(TriggeredService):
             ):
                 if self.enqueue(operation, priority, timestamp):
                     counter += 1
-                    self.make_dummy_evaluations(operation)
+                    self.prepare_pvp_evaluation(operation)
 
         return counter
 
