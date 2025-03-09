@@ -101,13 +101,21 @@ class ScoringExecutor(Executor):
                 score_type.compute_score(submission_result)
             
             if dataset.task_type != "PvP":
-                if submission_result.score == 100:
+                if (
+                    submission_result.score
+                    == submission_result.dataset.score_type_object.max_score
+                ):
                     if submission_result.submission.task.solved is False:
                         submission_result.submission.task.solved = True
                         text = "第一滴血! 选手 %s 第一个通过了 %s！" % \
                             (submission.participation.user.first_name+submission.participation.user.last_name, submission.task.title)
-                        ann = Announcement(make_datetime(), submission_result.submission.task.name, text,
-                            contest=submission.participation.contest, admin=None)
+                        ann = Announcement(
+                            make_datetime(),
+                            "第一滴血！",
+                            text,
+                            contest=submission.participation.contest,
+                            admin=None,
+                        )
                         session.add(ann)
 
             # Store it.
