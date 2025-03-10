@@ -46,6 +46,10 @@ function is_status_terminal (status) {
         || status == {{ SubmissionResult.SCORED }};
 };
 
+function is_discarded (status) {
+    return status == {{ SubmissionResult.DISCARDED }};
+};
+
 function get_score_class (score, max_score) {
     if (score <= 0) {
         return "score_0";
@@ -101,6 +105,7 @@ update_scores = function (submission_id, data) {
     var row = $(".submission_list tbody tr[data-submission=\"" + submission_id + "\"]");
     row.attr("data-status", data["status"]);
     row.find("td.status > div").text(data["status_text"]);
+    if (is_discarded(data["status"])) return;
     var terminal_status = is_status_terminal(data["status"]);
     if (!terminal_status) {
         row.find("td.status > div").append(`{% include "components/spinner.html" %}`);

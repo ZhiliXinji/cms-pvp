@@ -156,6 +156,8 @@ submissions_download_allowed (bool): whether to allow users to download
 {% elif status == SubmissionResult.COMPILATION_FAILED %}
             {% trans %}Compilation failed{% endtrans %}
             {% include "components/submission_detail_button.html" %}
+{% elif status == SubmissionResult.DISCARDED %}
+            {% trans %}Discarded{% endtrans %}
 {% elif status == SubmissionResult.EVALUATING %}
             {% trans %}Evaluating...{% endtrans %}
             {% include "components/spinner.html" %}
