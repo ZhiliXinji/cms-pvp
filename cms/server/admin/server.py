@@ -149,14 +149,19 @@ class AdminWebServer(WebService):
                 not_(SubmissionResult.filter_evaluated()))
 
             queries = {}
+            queries["discarded"] = base_query.filter(
+                SubmissionResult.filter_discarded()
+            )
             queries['compiling'] = not_compiled.filter(
                 SubmissionResult.compilation_tries <
                 EvaluationService.EvaluationService.MAX_COMPILATION_TRIES)
             queries['max_compilations'] = not_compiled.filter(
                 SubmissionResult.compilation_tries >=
                 EvaluationService.EvaluationService.MAX_COMPILATION_TRIES)
-            queries['compilation_fail'] = base_query.filter(
-                SubmissionResult.filter_compilation_failed())
+            queries["compilation_fail"] = base_query.filter(
+                SubmissionResult.filter_compilation_failed(),
+                not_(SubmissionResult.filter_discarded()),
+            )
             queries['evaluating'] = not_evaluated.filter(
                 SubmissionResult.evaluation_tries <
                 EvaluationService.EvaluationService.MAX_EVALUATION_TRIES)
@@ -184,11 +189,13 @@ class AdminWebServer(WebService):
                 queries[key] = query.add_columns(key_column)
 
             keys = list(queries.keys())
+
             results = queries[keys[0]].union_all(
                 *(queries[key] for key in keys[1:])).all()
 
         stats = {key: value for value, key in results}
-        stats['compiling'] += 2 * stats['total'] - sum(stats.values())
+        logger.info("Queries: %s", repr(stats))
+        stats["compiling"] += 2 * stats["total"] - sum(stats.values())
 
         return stats
 
