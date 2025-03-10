@@ -6,20 +6,6 @@
 
 {% block js %}
 <script>
-function getPreferredTheme() {
-    return localStorage.getItem("theme") ||
-        (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-}
-
-function setTheme(theme) {
-    if (theme) localStorage.setItem("theme", theme === "auto" ? "" : theme);
-    document.documentElement.setAttribute("data-bs-theme", getPreferredTheme());
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    setTheme();
-});
-
 var LANGUAGES = {
 {% for lang in contest.languages %}
     '{{ lang }}': {
