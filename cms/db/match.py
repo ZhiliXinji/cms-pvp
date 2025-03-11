@@ -73,6 +73,9 @@ class Batch(Base):
         Task,
         uselist=False,
     )
+
+    # To be compatible with the old system, we store the pvp_batch number
+    # in the database.
     task_pvp_batch = Column(
         Integer,
         nullable=False,
@@ -156,8 +159,10 @@ class Match(Base):
         cascade="all, delete-orphan",
     )
 
+    # Be corresponding with pvp_batch in Submission.
     batch = Column(Integer, nullable=True)
 
+    # Batch evaluation this match belongs to (not pvp_batch!).
     batch_eval_id = Column(
         Integer,
         ForeignKey(Batch.id, onupdate="CASCADE", ondelete="CASCADE"),

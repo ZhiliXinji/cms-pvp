@@ -188,6 +188,7 @@ class SubmissionStatusHandler(ContestHandler):
         SubmissionResult.SCORING: N_("Scoring..."),
         SubmissionResult.SCORED: N_("Evaluated"),
         SubmissionResult.DISCARDED: N_("Discarded"),
+        SubmissionResult.PENDING: N_("Pending..."),
     }
 
     refresh_cookie = False
