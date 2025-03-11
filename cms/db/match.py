@@ -98,6 +98,7 @@ class Batch(Base):
     )
 
     timestamp = Column(DateTime, nullable=False)
+    notification_sended = Column(Boolean, nullable=False, default=False)
 
     def start_evaluate(self):
         self.status = Batch.BATCH_EVALUATING

@@ -27,13 +27,52 @@ compute sets of operations to do.
 
 import logging
 
-from cms.db import Dataset, Submission, SubmissionResult, \
-    Task, Participation, Match, Contest, Batch
+from cms.db import (
+    Dataset,
+    Submission,
+    SubmissionResult,
+    Task,
+    Participation,
+    Match,
+    Contest,
+    Batch,
+    Announcement,
+)
 from cms.io import QueueItem
 from sqlalchemy.orm import aliased
+from cmscommon.datetime import make_datetime
+from datetime import timedelta
 
 
 logger = logging.getLogger(__name__)
+
+def add_notification(session, task):
+    if not hasattr(add_notification, "sended"):
+        add_notification.sended = set()
+
+    sended = add_notification.sended
+    task_type_object = task.active_dataset.task_type_object
+    pvp_batch = task.pvp_batch + 1
+    # if already sended, return
+    if (task.id, pvp_batch) in sended:
+        return
+    logger.info("trying to send notification for task %s", task.name)
+    sended.add((task.id, pvp_batch))
+    seconds = task_type_object.notification_time.seconds
+    text = "题目 %s 的统一评测将在 %s 内开始，请选手注意代码的提交时间。" % (
+        task.title,
+        f"{seconds // 60} 分 {seconds % 60} 秒",
+    )
+    ann = Announcement(
+        timestamp=make_datetime(),
+        subject="统一评测提醒",
+        text=text,
+        contest=task.contest,
+        admin=None,
+    )
+    session.add(ann)
+    session.commit()
+
 
 def get_operations(session, timestamp):
     """Return all the operations to do for PvP problems.
@@ -66,20 +105,26 @@ def get_operations(session, timestamp):
                     .with_entities(Batch.timestamp, Batch.status)
                     .first()
                 )
-                if (
-                    last_batch[1] != Batch.BATCH_EVALUATING
-                    and timestamp - last_batch[0] >= task_type_object.interval
-                ):
-                    new_batch = Batch(
-                        task=task,
-                        timestamp=timestamp,
-                        rounds=task_type_object.rounds,
-                        matches=[],
-                        task_pvp_batch=task.pvp_batch + 1,
-                    )
-                    session.add(new_batch)
-                    session.commit()
-                    yield PvPOperation(new_batch.id), timestamp
+                if last_batch[1] != Batch.BATCH_EVALUATING:
+                    if timestamp - last_batch[0] >= task_type_object.interval:
+                        new_batch = Batch(
+                            task=task,
+                            timestamp=timestamp,
+                            rounds=task_type_object.rounds,
+                            matches=[],
+                            task_pvp_batch=task.pvp_batch + 1,
+                        )
+                        session.add(new_batch)
+                        session.commit()
+                        yield PvPOperation(new_batch.id), timestamp
+                    elif (
+                        timestamp - last_batch[0]
+                        >= task_type_object.interval
+                        - task_type_object.notification_time
+                    ):
+                        add_notification(session, task)
+                        # Send notification to contestants, to remind them of starting of
+                        # batch evaluation.
 
     # TODO: other batch
     session.commit()
