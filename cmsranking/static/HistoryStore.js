@@ -24,6 +24,20 @@ var HistoryStore = new function () {
         self.history_t = new Array();  // per task
         self.history_c = new Array();  // per contest
         self.history_g = new Array();  // global
+        self.solve_time_t = new Object(); // the time to arrive a user's max score for each task
+        self.solve_time_c = new Object(); // solve time per contest
+        self.solve_time_g = new Object(); // solve time globally
+        for (var u_id in DataStore.users) {
+            self.solve_time_t[u_id] = new Object();
+            self.solve_time_c[u_id] = new Object();
+            self.solve_time_g[u_id] = 0;
+            for (var t_id in DataStore.tasks) {
+                self.solve_time_t[u_id][t_id] = 0;
+            }
+            for (var c_id in DataStore.contests) {
+                self.solve_time_c[u_id][c_id] = 0;
+            }
+        }
     };
 
     self.request_update = function (callback) {
@@ -51,6 +65,23 @@ var HistoryStore = new function () {
         self.history_t = new Array();
         self.history_c = new Array();
         self.history_g = new Array();
+        self.solve_time_t = new Object();
+        self.solve_time_c = new Object();
+        self.solve_time_g = new Object();
+        var max_score = new Object();
+        for (var u_id in DataStore.users) {
+            self.solve_time_t[u_id] = new Object();
+            self.solve_time_c[u_id] = new Object();
+            self.solve_time_g[u_id] = 0;
+            max_score[u_id] = new Object();
+            for (var t_id in DataStore.tasks) {
+                self.solve_time_t[u_id][t_id] = 0;
+                max_score[u_id][t_id] = 0.0;
+            }
+            for (var c_id in DataStore.contests) {
+                self.solve_time_c[u_id][c_id] = 0;
+            }
+        }
 
         for (var i in data) {
             var user = data[i][0];
@@ -60,10 +91,21 @@ var HistoryStore = new function () {
 
             if (d[user]) {
                 d[user][task] = score;
+                var contest_id = DataStore.tasks[task]['contest'];
+
+                if (score > max_score[user][task]) {
+                    max_score[user][task] = score;
+                    self.solve_time_c[user][contest_id] -= self.solve_time_t[user][task];
+                    self.solve_time_g[user] -= self.solve_time_t[user][task];
+                    self.solve_time_t[user][task] = time - DataStore.contests[contest_id]['begin'];
+                    self.solve_time_c[user][contest_id] += self.solve_time_t[user][task];
+                    self.solve_time_g[user] += self.solve_time_t[user][task];
+
+                }
 
                 self.history_t.push([user, task, time, score]);
 
-                var contest_id = DataStore.tasks[task]['contest'];
+
                 var tmp_score = 0.0;
                 for (var t_id in d[user]) {
                     if (DataStore.tasks[t_id]['contest'] == contest_id) {
