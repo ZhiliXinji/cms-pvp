@@ -373,6 +373,10 @@ var Scoreboard = new function () {
         for (var idx in list)
         {
             list[idx]["index"] = idx;
+            var rank_el = list[idx]["row"].querySelector(".rank");
+            if (rank_el) {
+                rank_el.textContent = (parseInt(list[idx]["index"]) + 1).toString();
+            }
             fragment.appendChild(list[idx]["row"]);
         }
 
