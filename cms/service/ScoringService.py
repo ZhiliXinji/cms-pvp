@@ -107,14 +107,19 @@ class ScoringExecutor(Executor):
                 ):
                     if submission_result.submission.task.solved is False:
                         submission_result.submission.task.solved = True
-                        text = "第一滴血! 选手 %s 第一个通过了 %s！" % \
-                            (submission.participation.user.first_name+submission.participation.user.last_name, submission.task.title)
+                        text = "选手 %s 第一个通过了 %s！" % (
+                            submission.participation.user.first_name
+                            + " "
+                            + submission.participation.user.last_name,
+                            submission.task.title,
+                        )
                         ann = Announcement(
                             make_datetime(),
-                            "第一滴血！",
+                            "%s 的第一滴血！" % submission.task.title,
                             text,
                             contest=submission.participation.contest,
                             admin=None,
+                            first_blood_announcement=True,
                         )
                         session.add(ann)
 
