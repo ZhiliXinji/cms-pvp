@@ -759,6 +759,7 @@ class YamlLoader(ContestLoader, TaskLoader, UserLoader, TeamLoader):
                             conf.get("auto_eval", "disabled"),
                             conf.get("interval", 1800),
                             conf.get("rounds", 5),
+                            conf.get("notification_time", 300),
                         )
                     for other_filename in os.listdir(os.path.join(self.path,
                                                                   "sol")):

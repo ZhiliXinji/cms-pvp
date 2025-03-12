@@ -36,7 +36,7 @@ from datetime import timedelta
 from functools import wraps
 
 import gevent.lock
-from sqlalchemy import func
+from sqlalchemy import func, not_
 from sqlalchemy.exc import IntegrityError
 
 from cms import ServiceCoord, get_service_shards
@@ -325,6 +325,10 @@ class EvaluationService(TriggeredService):
         """Preparation steps for a submission of a PvP task, including making dummy
         evaluations to store outcomes and invalidating old submissions.
 
+        NOTE: In PvP task, submission doesn't participate in the evaluation phase.
+            Instead, their evaluation will be done in PvPService, and manually call
+            SS to update score.
+
         operation (ESOperation): match or evaluation operation that we want the evaluations
                                 for both sides.
 
@@ -378,6 +382,7 @@ class EvaluationService(TriggeredService):
                         session.query(SubmissionResult)
                         .join(SubmissionResult.submission)
                         .filter(SubmissionResult.filter_compiled())
+                        .filter(not_(SubmissionResult.filter_scored()))
                         .filter(
                             Submission.participation_id == submission.participation_id
                         )

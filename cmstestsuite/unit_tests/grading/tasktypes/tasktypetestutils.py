@@ -43,12 +43,15 @@ def make_language(name, source_extensions, header_extensions,
                   evaluation_command):
     """Create a language (actually a MagicMock) with the given data."""
     language = MagicMock()
-    language.configure_mock(name=name,
-                            source_extensions=source_extensions,
-                            source_extension=source_extensions[0],
-                            header_extensions=header_extensions,
-                            header_extension=header_extensions[0],
-                            executable_extension=executable_extension)
+    language.configure_mock(
+        name=name,
+        source_extensions=source_extensions,
+        source_extension=source_extensions[0],
+        header_extensions=header_extensions,
+        header_extension=header_extensions[0],
+        executable_extension=executable_extension,
+        time_limit_multiplier=1.0,
+    )
     language.get_compilation_commands.side_effect = \
         functools.partial(fake_compilation_commands, compilation_command)
     language.get_evaluation_commands.side_effect = \

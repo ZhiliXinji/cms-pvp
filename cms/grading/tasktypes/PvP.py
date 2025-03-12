@@ -129,13 +129,11 @@ class PvP(TaskType):
         "How many rounds should be run in each auto batch evaluation.",
     )
 
-    # _K = ParameterTypeInt("K", "k", "Parameter K used in Elo rating.")
-
-    # _S_RATING = ParameterTypeInt(
-    #     "Initial rating",
-    #     "s_rating",
-    #     "Initial rating for all participations who have valid submissions.",
-    # )
+    _NOTIFICATION_TIME = ParameterTypeInt(
+        "Notification time",
+        "notification_time",
+        "When to send notification to contestants to remind auto batch evaluation. (seconds in advance)",
+    )
 
     ACCEPTED_PARAMETERS = [
         _COMPILATION,
@@ -143,6 +141,7 @@ class PvP(TaskType):
         _AUTO_EVAL,
         _INTERVAL,
         _ROUNDS,
+        _NOTIFICATION_TIME,
     ]
 
     @property
@@ -158,6 +157,7 @@ class PvP(TaskType):
         self.auto_eval = self.parameters[2]
         self.interval = timedelta(seconds=self.parameters[3])
         self.rounds = self.parameters[4]
+        self.notification_time = timedelta(seconds=self.parameters[5])
 
     def get_compilation_commands(self, submission_format):
         """See TaskType.get_compilation_commands."""
@@ -209,8 +209,6 @@ class PvP(TaskType):
         name = "_".join(sorted(codename.replace(".%l", "") for codename in codenames))
         return name + language.executable_extension
 
-    # NOTE: In PvP, you have two users, so you may have to call this twice.
-    # You should guarantee that two executables have different filenames.
     def compile(self, job, file_cacher):
         """See TaskType.compile."""
         language = get_language(job.language)

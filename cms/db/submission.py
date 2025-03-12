@@ -95,7 +95,7 @@ class Submission(Base):
         default=True,
     )
 
-    # Batch number for PvP matches
+    # Batch number for PvP matches.
     pvp_batch = Column(
         Integer,
         nullable=True,
@@ -276,7 +276,10 @@ class SubmissionResult(Base):
     EVALUATING = 3
     SCORING = 4
     SCORED = 5
-    DISCARDED = 6
+
+    # PvP exclusive.
+    PENDING = 6
+    DISCARDED = 7
 
     __tablename__ = 'submission_results'
     __table_args__ = (
@@ -359,8 +362,9 @@ class SubmissionResult(Base):
         nullable=True)
 
     # Represent if a submission is discarded. Used in PvP only.
-    # If a submission is discarded, then its status will be
-    # equivalent to COMPILATION_FAILED, plus this flag = "discarded".
+    # If a submission is discarded, it's recommended to set
+    # `compilation_status` on "failed", to make the submission
+    # not evaluated anymore.
     submission_discarded = Column(
         Enum("discarded", name="submission_discarded"), nullable=True
     )
@@ -427,6 +431,8 @@ class SubmissionResult(Base):
             return SubmissionResult.COMPILING
         elif self.compilation_failed():
             return SubmissionResult.COMPILATION_FAILED
+        elif self.pending():
+            return SubmissionResult.PENDING
         elif not self.evaluated():
             return SubmissionResult.EVALUATING
         elif not self.scored():
@@ -486,12 +492,21 @@ class SubmissionResult(Base):
 
     def discarded(self):
         """Return whether the submission result has been discarded.
+        About the reason to judge compilation_failed(), see comments
+        on submission_discarded.
 
         return (bool): True if discarded, False otherwise.
 
         """
         return self.compilation_failed() and self.submission_discarded == "discarded"
 
+    def pending(self):
+        """Return whether the submission result is pending.
+
+        return (bool): True if pending, False otherwise.
+
+        """
+        return not self.discarded() and self.submission.pvp_batch is None
     @staticmethod
     def filter_compiled():
         """Return a filtering expression for compiled submission results.
