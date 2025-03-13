@@ -59,9 +59,9 @@ def add_notification(session, task):
     logger.info("trying to send notification for task %s", task.name)
     sended.add((task.id, pvp_batch))
     seconds = task_type_object.notification_time.seconds
-    text = "题目 %s 的统一评测将在 %s 内开始，请选手注意代码的提交时间。" % (
+    text = "题目 %s 的统一评测将在%s后开始，请选手注意代码的提交时间。" % (
         task.title,
-        f"{seconds // 60} 分 {seconds % 60} 秒",
+        f" {seconds // 60} 分 {seconds % 60} 秒",
     )
     ann = Announcement(
         timestamp=make_datetime(),
