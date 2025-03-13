@@ -506,7 +506,11 @@ class SubmissionResult(Base):
         return (bool): True if pending, False otherwise.
 
         """
-        return not self.discarded() and self.submission.pvp_batch is None
+        return (
+            not self.discarded()
+            and self.dataset.task_type == "PvP"
+            and self.submission.pvp_batch is None
+        )
     @staticmethod
     def filter_compiled():
         """Return a filtering expression for compiled submission results.
