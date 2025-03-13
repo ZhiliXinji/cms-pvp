@@ -29,10 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const submissionDetailModal = document.getElementById("submission_detail");
     submissionDetailModal.addEventListener("show.bs.modal", async (event) => {
         const button = event.relatedTarget;
-        console.log(button);
         const submissionId = button.closest("[data-submission]").getAttribute("data-submission");
         const modalBody = submissionDetailModal.querySelector(".modal-body");
-        console.log(modalBody);
         modalBody.innerHTML = `{% include "components/spinner.html" %}`;
         const response = await fetch(
             utils.contest_url("tasks", "{{ task.name }}", "submissions", submissionId, "details"),
@@ -98,7 +96,6 @@ update_score = function(score_elem, task_score_elem,
     task_score_elem.removeClass("score_0_100");
     task_score_elem.removeClass("score_100");
     task_score_elem.addClass(get_score_class(task_score, max_score));
-    console.log(task_score, max_score, task_score_message);
 };
 
 update_scores = function (submission_id, data) {
@@ -162,7 +159,7 @@ $(document).ready(function () {
 
 {% block core %}
 
-<div class="container-fluid row g-4">
+<div class="row g-4">
 
 {% set two_column_submission =
     task.submission_format|length > 1 and not task.submission_format|any("endswith", ".%l") %}

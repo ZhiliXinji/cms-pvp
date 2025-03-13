@@ -154,6 +154,8 @@ CMS.CWSUtils.prototype.display_notification = function(type, timestamp,
         this.displayToast(title, subject || text, level);
     } else if (type == "notification") {
         this.displayToast(subject, text, level);
+    } else if (type == "firstblood") {
+        this.displayToast(subject, text, level);
     }
 
     // Trigger a desktop notification as well (but only if it's needed)

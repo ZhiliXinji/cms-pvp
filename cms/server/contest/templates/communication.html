@@ -3,142 +3,140 @@
 {% set page = "communication" %}
 
 {% block core %}
-<div class="container">
 
-  {% if contest.announcements|length > 0 %}
-  <section class="mb-5">
-    <h3 class="mb-4">{% trans %}Announcements{% endtrans %}</h3>
-    <div class="card shadow border-0">
-      <div class="card-body p-0">
-        {% for msg in contest.announcements|reverse %}
-        <div class="border-bottom p-4">
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <h4 class="mb-0 {% if msg.subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
-              {{ msg.subject|default(_("(no subject)"), true) }}
-            </h4>
-            <small class="text-body-secondary">{{ msg.timestamp|format_datetime_smart }}</small>
-          </div>
-          {% if msg.text|length > 0 %}
-          <div class="text-break">{{ msg.text }}</div>
-          {% endif %}
+{% if contest.announcements|length > 0 %}
+<section class="mb-5">
+  <h3 class="mb-4">{% trans %}Announcements{% endtrans %}</h3>
+  <div class="card shadow border-0">
+    <div class="card-body p-0">
+      {% for msg in contest.announcements|reverse %}
+      <div class="border-bottom p-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <h4 class="mb-0 {% if msg.subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
+            {{ msg.subject|default(_("(no subject)"), true) }}
+          </h4>
+          <small class="text-body-secondary">{{ msg.timestamp|format_datetime_smart }}</small>
         </div>
-        {% endfor %}
-      </div>
-    </div>
-  </section>
-  {% endif %}
-
-  {% if questions_enabled %}
-  <section class="mb-5">
-    <h3 class="mb-4">{% trans %}Questions{% endtrans %}</h3>
-
-    <div class="card shadow border-0">
-      <div class="card-body">
-        <form action="{{ contest_url("question") }}" method="POST">
-          {{ xsrf_form_html|safe }}
-          <div class="row g-3">
-            <div class="col-12">
-              <label for="input_subject" class="form-label">
-                {% trans %}Subject{% endtrans %}
-              </label>
-              <input type="text" name="question_subject" id="input_subject"
-                     class="form-control" maxlength="50" list="task_names_list"
-                     placeholder="{% trans %}Enter subject...{% endtrans %}">
-              <datalist id="task_names_list">
-                {% if actual_phase >= 0 %}
-                  {% for task in contest.tasks %}
-                <option value="{{ task.name }}">
-                  {% endfor %}
-                {% endif %}
-              </datalist>
-            </div>
-
-            <div class="col-12">
-              <label for="input_text" class="form-label">
-                {% trans %}Text{% endtrans %}
-              </label>
-              <textarea id="input_text" name="question_text"
-                        class="form-control" rows="5" maxlength="2000"
-                        placeholder="{% trans %}Enter your question...{% endtrans %}"></textarea>
-            </div>
-
-            <div class="col-12 d-flex gap-3">
-              <button type="submit" class="btn btn-primary">
-                <i class="bi bi-arrow-up-circle me-1"></i>
-                {% trans %}Ask question{% endtrans %}
-              </button>
-              <button type="reset" class="btn btn-outline-secondary">
-                {% trans %}Reset{% endtrans %}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    {% if participation.questions|length > 0 %}
-    <div class="mt-4">
-      {% for msg in participation.questions|reverse %}
-      <div class="card shadow-sm mb-3">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <h4 class="mb-0 {% if msg.subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
-              {{ msg.subject|default(_("(no subject)"), true) }}
-            </h4>
-            <small class="text-body-secondary">{{ msg.question_timestamp|format_datetime_smart }}</small>
-          </div>
-          {% if msg.text|length > 0 %}
-          <div class="text-break">{{ msg.text }}</div>
-          {% endif %}
-        </div>
-
-        {% if msg.reply_timestamp is not none %}
-        <div class="card-footer">
-          <div class="d-flex justify-content-between align-items-start mt-2 mb-3">
-            <h5 class="mb-0 {% if msg.reply_subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
-              {{ msg.reply_subject|default(_("(no subject)"), true) }}
-            </h5>
-            <small class="text-body-secondary">{{ msg.reply_timestamp|format_datetime_smart }}</small>
-          </div>
-          {% if msg.reply_text|length > 0 %}
-          <div class="text-break">{{ msg.reply_text }}</div>
-          {% endif %}
-        </div>
-        {% else %}
-        <div class="card-footer text-body-secondary">
-          <i class="bi bi-clock-history me-2"></i>
-          {% trans %}no answer yet{% endtrans %}
-        </div>
+        {% if msg.text|length > 0 %}
+        <div class="text-break">{{ msg.text }}</div>
         {% endif %}
       </div>
       {% endfor %}
     </div>
-    {% endif %}
-  </section>
-  {% endif %}
+  </div>
+</section>
+{% endif %}
 
-  {% if participation.messages|length > 0 %}
-  <section class="mb-4">
-    <h3 class="mb-4">{% trans %}Messages{% endtrans %}</h3>
-    <div class="card shadow-sm">
-      <div class="card-body p-0">
-        {% for msg in participation.messages|reverse %}
-        <div class="border-bottom p-4">
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <h4 class="mb-0 {% if msg.subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
-              {{ msg.subject|default(_("(no subject)"), true) }}
-            </h4>
-            <small class="text-body-secondary">{{ msg.timestamp|format_datetime_smart }}</small>
+{% if questions_enabled %}
+<section class="mb-5">
+  <h3 class="mb-4">{% trans %}Questions{% endtrans %}</h3>
+
+  <div class="card shadow border-0">
+    <div class="card-body">
+      <form action="{{ contest_url("question") }}" method="POST">
+        {{ xsrf_form_html|safe }}
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="input_subject" class="form-label">
+              {% trans %}Subject{% endtrans %}
+            </label>
+            <input type="text" name="question_subject" id="input_subject"
+                    class="form-control" maxlength="50" list="task_names_list"
+                    placeholder="{% trans %}Enter subject...{% endtrans %}">
+            <datalist id="task_names_list">
+              {% if actual_phase >= 0 %}
+                {% for task in contest.tasks %}
+              <option value="{{ task.name }}">
+                {% endfor %}
+              {% endif %}
+            </datalist>
           </div>
-          {% if msg.text|length > 0 %}
-          <div class="text-break">{{ msg.text }}</div>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </section>
-  {% endif %}
 
-</div>
+          <div class="col-12">
+            <label for="input_text" class="form-label">
+              {% trans %}Text{% endtrans %}
+            </label>
+            <textarea id="input_text" name="question_text"
+                      class="form-control" rows="5" maxlength="2000"
+                      placeholder="{% trans %}Enter your question...{% endtrans %}"></textarea>
+          </div>
+
+          <div class="col-12 d-flex gap-3">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-arrow-up-circle me-1"></i>
+              {% trans %}Ask question{% endtrans %}
+            </button>
+            <button type="reset" class="btn btn-outline-secondary">
+              {% trans %}Reset{% endtrans %}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if participation.questions|length > 0 %}
+  <div class="mt-4">
+    {% for msg in participation.questions|reverse %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <h4 class="mb-0 {% if msg.subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
+            {{ msg.subject|default(_("(no subject)"), true) }}
+          </h4>
+          <small class="text-body-secondary">{{ msg.question_timestamp|format_datetime_smart }}</small>
+        </div>
+        {% if msg.text|length > 0 %}
+        <div class="text-break">{{ msg.text }}</div>
+        {% endif %}
+      </div>
+
+      {% if msg.reply_timestamp is not none %}
+      <div class="card-footer">
+        <div class="d-flex justify-content-between align-items-start mt-2 mb-3">
+          <h5 class="mb-0 {% if msg.reply_subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
+            {{ msg.reply_subject|default(_("(no subject)"), true) }}
+          </h5>
+          <small class="text-body-secondary">{{ msg.reply_timestamp|format_datetime_smart }}</small>
+        </div>
+        {% if msg.reply_text|length > 0 %}
+        <div class="text-break">{{ msg.reply_text }}</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="card-footer text-body-secondary">
+        <i class="bi bi-clock-history me-2"></i>
+        {% trans %}no answer yet{% endtrans %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if participation.messages|length > 0 %}
+<section class="mb-4">
+  <h3 class="mb-4">{% trans %}Messages{% endtrans %}</h3>
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      {% for msg in participation.messages|reverse %}
+      <div class="border-bottom p-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <h4 class="mb-0 {% if msg.subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
+            {{ msg.subject|default(_("(no subject)"), true) }}
+          </h4>
+          <small class="text-body-secondary">{{ msg.timestamp|format_datetime_smart }}</small>
+        </div>
+        {% if msg.text|length > 0 %}
+        <div class="text-break">{{ msg.text }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
 {% endblock core %}
