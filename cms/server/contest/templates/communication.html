@@ -4,12 +4,13 @@
 
 {% block core %}
 
-{% if contest.announcements|length > 0 %}
+{% set announcements = contest.announcements|selectattr("server_notification", "equalto", False)|list %}
+{% if announcements|length > 0 %}
 <section class="mb-5">
   <h3 class="mb-4">{% trans %}Announcements{% endtrans %}</h3>
   <div class="card shadow border-0">
     <div class="card-body p-0">
-      {% for msg in contest.announcements|reverse %}
+  {% for msg in announcements|reverse %}
       <div class="border-bottom p-4">
         <div class="d-flex justify-content-between align-items-start mb-3">
           <h4 class="mb-0 {% if msg.subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
@@ -21,7 +22,7 @@
         <div class="text-break">{{ msg.text }}</div>
         {% endif %}
       </div>
-      {% endfor %}
+  {% endfor %}
     </div>
   </div>
 </section>

@@ -329,8 +329,7 @@ class Announcement(Base):
     text = Column(
         Unicode,
         nullable=False)
-    first_blood_announcement = Column(Boolean, nullable=False, default=False)
-    pvp_time_announcement = Column(Boolean, nullable=False, default=False)
+    server_notification = Column(Boolean, nullable=False, default=False)
 
     # Contest (id and object) owning the announcement.
     contest_id = Column(

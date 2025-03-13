@@ -80,7 +80,7 @@ CMS.CWSUtils.prototype.update_notifications = function(hush) {
                     data[i].level,
                     hush);
                 if (data[i].type != "notification") {
-                    self.update_unread_count(1);
+                    if (data[i].type != "server-notification") self.update_unread_count(1);
                     self.update_last_notification(data[i].timestamp);
                 }
             }
@@ -152,9 +152,7 @@ CMS.CWSUtils.prototype.display_notification = function(type, timestamp,
     } else if (type == "question") {
         const title = document.getElementById("translation_new_answer").innerText;
         this.displayToast(title, subject || text, level);
-    } else if (type == "notification") {
-        this.displayToast(subject, text, level);
-    } else if (type == "firstblood") {
+    } else if (type == "notification" || type == "server-notification") {
         this.displayToast(subject, text, level);
     }
 

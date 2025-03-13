@@ -99,7 +99,7 @@ class ScoringExecutor(Executor):
                 submission_result.public_score_details, \
                 submission_result.ranking_score_details = \
                 score_type.compute_score(submission_result)
-            
+
             if dataset.task_type != "PvP":
                 if (
                     submission_result.score
@@ -119,7 +119,7 @@ class ScoringExecutor(Executor):
                             text,
                             contest=submission.participation.contest,
                             admin=None,
-                            first_blood_announcement=True,
+                            server_notification=True,
                         )
                         session.add(ann)
 
