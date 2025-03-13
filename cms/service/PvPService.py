@@ -195,6 +195,33 @@ class PvPExecutor(Executor):
         )
         return match
 
+    def copy_submissions(self, session, task_id):
+        """Copy the submissions to the next batch."""
+        task = Task.get_from_id(task_id, session)
+        if not task:
+            logger.error("No task called `%s' found." % task.name)
+            return False
+
+        for p in task.contest.participations:
+            submission = get_last_submission(session, p, task)
+            if submission:
+                result = submission.get_result()
+                if result is not None:
+                    new_submission = Submission(
+                        make_datetime(),
+                        submission.language,
+                        participation=p,
+                        task=task,
+                        pvp_batch=None,
+                    )
+                    for key, f in submission.files.items():
+                        session.add(
+                            File(f.filename, f.digest, submission=new_submission)
+                        )
+                    session.add(new_submission)
+        session.commit()
+        return True
+
     def mark_match_submissions(self, session, task_id):
         """Mark the submissions that will be used in the match."""
         task = Task.get_from_id(task_id, session)
@@ -230,6 +257,8 @@ class PvPExecutor(Executor):
                 return False
             if not self.mark_match_submissions(session, task.id):
                 logger.error("Could not mark submissions for task %s." % task.name)
+            if not self.copy_submissions(session, task.id):
+                logger.error("Could not copy submissions for task %s." % task.name)
                 return False
             if rounds == 0:
                 logger.error("Zero rounds are not allowed.")
