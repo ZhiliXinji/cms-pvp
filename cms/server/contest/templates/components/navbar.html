@@ -43,20 +43,20 @@
 {% endif %}
             <div class="hovermenu w-auto">
                 <button type="button" class="btn navbar-btn"><i class="bi bi-circle-half h5"></i></button>
-                <ul id="lang_dropdown_list" class="dropdown-menu overflow-y-auto w-auto shadow">
+                <ul id="theme_dropdown_list" class="dropdown-menu overflow-y-auto w-auto shadow">
                     <li class="mx-1">
-                        <button class="dropdown-item rounded" onclick="setTheme('auto')">
+                        <button id="theme-auto" class="dropdown-item rounded" onclick="setTheme('auto')">
                             {% trans %}Automatic{% endtrans %}
                         </button>
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li class="mx-1">
-                        <button class="dropdown-item rounded" onclick="setTheme('light')">
+                        <button id="theme-light" class="dropdown-item rounded" onclick="setTheme('light')">
                             {% trans %}Light{% endtrans %}
                         </button>
                     </li>
                     <li class="mx-1">
-                        <button class="dropdown-item rounded" onclick="setTheme('dark')">
+                        <button id="theme-dark" class="dropdown-item rounded" onclick="setTheme('dark')">
                             {% trans %}Dark{% endtrans %}
                         </button>
                     </li>
