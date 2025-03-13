@@ -18,7 +18,7 @@
 {% if available_translations|length > 1 %}
             <div class="hovermenu w-auto">
                 <button type="button" class="btn navbar-btn"><i class="bi bi-translate h5"></i></button>
-                <ul id="lang_dropdown_list" class="dropdown-menu overflow-y-auto w-auto shadow">
+                <ul class="dropdown-menu nav-hoverdown-list overflow-y-auto w-auto shadow">
                     <li class="mx-1">
                         <button
                             class="dropdown-item rounded{% if cookie_translation is none %} active{% endif %}"
@@ -43,7 +43,7 @@
 {% endif %}
             <div class="hovermenu w-auto">
                 <button type="button" class="btn navbar-btn"><i class="bi bi-circle-half h5"></i></button>
-                <ul id="theme_dropdown_list" class="dropdown-menu overflow-y-auto w-auto shadow">
+                <ul class="dropdown-menu nav-hoverdown-list overflow-y-auto w-auto shadow">
                     <li class="mx-1">
                         <button id="theme-auto" class="dropdown-item rounded" onclick="setTheme('auto')">
                             {% trans %}Automatic{% endtrans %}

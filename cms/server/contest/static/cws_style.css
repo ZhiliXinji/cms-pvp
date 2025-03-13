@@ -322,14 +322,12 @@ thead {
     opacity: 1;
 }
 
-#lang_dropdown_list {
+.nav-hoverdown-list {
     max-height: 0;
-    right: 0;
-    left: auto;
     transform: translateY(0.2rem);
 }
 
-.hovermenu:hover #lang_dropdown_list {
+.hovermenu:hover .nav-hoverdown-list {
     max-height: 30rem;
 }
 
