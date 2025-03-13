@@ -69,6 +69,7 @@ def add_notification(session, task):
         text=text,
         contest=task.contest,
         admin=None,
+        pvp_time_announcement=True,
     )
     session.add(ann)
     session.commit()

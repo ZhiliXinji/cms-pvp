@@ -149,6 +149,16 @@ def get_communications(sql_session, participation, timestamp, after=None):
                     "level": "info",
                 }
             )
+        elif announcement.pvp_time_announcement:
+            res.append(
+                {
+                    "type": "notification",
+                    "timestamp": make_timestamp(announcement.timestamp),
+                    "subject": announcement.subject,
+                    "text": announcement.text,
+                    "level": "info",
+                }
+            )
         else:
             res.append(
                 {
