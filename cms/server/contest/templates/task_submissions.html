@@ -87,8 +87,8 @@ update_score = function(score_elem, task_score_elem,
     var task_score_span = task_score_elem.find(".score");
     task_score_span.text(task_score_message);
     if (task_score_is_partial) {
-        task_score_span.after(`{% include "components/spinner.html" %}`);
-    } else {
+        if (!task_score_span.next()) task_score_span.after(`{% include "components/spinner.html" %}`);
+    } else if (task_score_span.next()) {
         task_score_span.next().remove();
     }
     task_score_elem.removeClass("undefined");
