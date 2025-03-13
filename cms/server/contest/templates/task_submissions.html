@@ -162,7 +162,7 @@ $(document).ready(function () {
 
 {% block core %}
 
-<div class="container-fluid row g-4">
+<div class="row g-4">
 
 {% set two_column_submission =
     task.submission_format|length > 1 and not task.submission_format|any("endswith", ".%l") %}
