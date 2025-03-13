@@ -74,6 +74,15 @@ function updatePosition() {
     // 1rem = .mt-3 is the margin-top of the page content
     sidebar.style.top = `calc(${header.offsetHeight}px + 1rem)`;
     sidebar.style.height = `calc(100vh - ${header.offsetHeight}px - 1rem)`;
+
+    // Navbar Dropdowns
+    document.querySelectorAll(".navbar .hovermenu > .dropdown-menu").forEach(menu => {
+        if (menu.getBoundingClientRect().right > window.innerWidth) {
+          menu.style.right = "0";
+        } else {
+          menu.style.right = "";
+        }
+    });
 }
 
 document.addEventListener("DOMContentLoaded", updatePosition);
