@@ -24,15 +24,16 @@ function getPreferredTheme() {
 }
 
 function setTheme(theme) {
-    const currentTheme = localStorage.getItem("theme") || "auto";
-    document.getElementById(`theme-${currentTheme}`).classList.remove("active");
-    document.getElementById(`theme-${theme}`).classList.add("active");
+    const previousTheme = localStorage.getItem("theme") || "auto";
+    document.getElementById(`theme-${previousTheme}`).classList.remove("active");
     if (theme) localStorage.setItem("theme", theme === "auto" ? "" : theme);
+    const currentTheme = localStorage.getItem("theme") || "auto";
+    document.getElementById(`theme-${currentTheme}`).classList.add("active");
     document.documentElement.setAttribute("data-bs-theme", getPreferredTheme());
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    setTheme("auto");
+    setTheme();
 });
         </script>
 
