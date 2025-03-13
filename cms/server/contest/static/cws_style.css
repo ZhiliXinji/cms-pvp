@@ -144,43 +144,19 @@ div.register_box {
     margin: 20px auto;
 }
 
-/* Some fixes and enhancements of Bootstrap */
-/* For mobile devices (max-width: 767px) */
-@media (max-width: 767px) {
-    .modal-dialog {
-        position: fixed;
-        top: 50%;
-        left: 10px;
-        right: 10px;
-        width: auto;
-        transform: translateY(-50%); /* Vertically center */
+/* For extra large screens (1800px and above) */
+
+@media (min-width: 1800px) {
+    .container-xxl.extra-large {
+        max-width: 1680px;
     }
 }
 
-/* For medium screens (768px to 979px) */
-@media (min-width: 768px) and (max-width: 979px) {
-    .modal-dialog.modal-wide {
-        width: 600px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-}
+/* For extra extra large screens (2100px and above) */
 
-/* For large screens (980px to 1199px) */
-@media (min-width: 980px) and (max-width: 1199px) {
-    .modal-dialog.modal-wide {
-        width: 780px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-}
-
-/* For extra large screens (1200px and above) */
-@media (min-width: 1200px) {
-    .modal-dialog.modal-wide {
-        width: 970px;
-        margin-left: auto;
-        margin-right: auto;
+@media (min-width: 2100px) {
+    .container-xxl.extra-large {
+        max-width: 1920px;
     }
 }
 
