@@ -83,6 +83,9 @@ function updatePosition() {
           menu.style.right = "";
         }
     });
+
+    // Navbar Brand
+    document.getElementsByClassName("navbar-brand")[0].style.width = `${sidebar.offsetWidth}px`;
 }
 
 document.addEventListener("DOMContentLoaded", updatePosition);
@@ -98,7 +101,7 @@ window.addEventListener("resize", updatePosition);
 
     <div class="toast-container position-fixed end-0 p-3" id="notifications"></div>
 
-    <div class="flex-grow-1 container-fluid d-flex justify-content-center align-items-center position-relative">
+    <div class="flex-grow-1 container-fluid d-flex justify-content-center align-items-center position-relative px-0">
     {% if participation is undefined %}
         <div class="container card rounded-5 shadow login_box py-2">
             <div class="card-body px-5 py-4">
@@ -150,9 +153,9 @@ window.addEventListener("resize", updatePosition);
         <div style="display: none" id="translation_time_left">{% trans %}Time left:{% endtrans %}</div>
         <!-- End -->
 
-        <div class="container-xxl extra-large d-inline-flex gap-4 mt-3">
+        <div class="container-xxl extra-large d-inline-flex gap-4 mt-3 px-4">
             {% include "components/sidebar.html" %}
-            <main class="container flex-grow-1 mb-5 px-0">
+            <main class="container flex-grow-1 mb-5">
                 {% block core %}{% endblock core %}
             </main>
         </div>
