@@ -150,6 +150,9 @@ div.register_box {
     .container-xxl.extra-large {
         max-width: 1680px;
     }
+    .gap-extra-large {
+        gap: 3rem !important;
+    }
 }
 
 /* For extra extra large screens (2100px and above) */
@@ -157,6 +160,9 @@ div.register_box {
 @media (min-width: 2100px) {
     .container-xxl.extra-large {
         max-width: 1920px;
+    }
+    .gap-extra-large {
+        gap: 5rem !important;
     }
 }
 
@@ -244,7 +250,7 @@ thead {
 /*** Sidebar */
 .sidebar {
     flex: 0 0 20%;
-    max-width: 250px;
+    max-width: 17.5rem;
 }
 
 .sidebar .nav {

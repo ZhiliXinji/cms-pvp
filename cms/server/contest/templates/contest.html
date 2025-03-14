@@ -153,9 +153,9 @@ window.addEventListener("resize", updatePosition);
         <div style="display: none" id="translation_time_left">{% trans %}Time left:{% endtrans %}</div>
         <!-- End -->
 
-        <div class="container-xxl extra-large d-inline-flex gap-4 mt-3 px-4">
+        <div class="container-xxl extra-large d-inline-flex gap-4 gap-extra-large mt-3 px-4">
             {% include "components/sidebar.html" %}
-            <main class="container flex-grow-1 mb-5">
+            <main class="container-fluid flex-grow-1 mb-5">
                 {% block core %}{% endblock core %}
             </main>
         </div>
