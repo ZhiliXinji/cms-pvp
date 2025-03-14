@@ -119,7 +119,7 @@ class ScoringExecutor(Executor):
                             text,
                             contest=submission.participation.contest,
                             admin=None,
-                            server_notification=True,
+                            firstblood=True,
                         )
                         session.add(ann)
 

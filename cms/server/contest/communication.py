@@ -149,6 +149,16 @@ def get_communications(sql_session, participation, timestamp, after=None):
                     "level": "info",
                 }
             )
+        elif announcement.firstblood:
+            res.append(
+                {
+                    "type": "firstblood",
+                    "timestamp": make_timestamp(announcement.timestamp),
+                    "subject": announcement.subject,
+                    "text": announcement.text,
+                    "level": "info",
+                }
+            )
         else:
             res.append(
                 {
