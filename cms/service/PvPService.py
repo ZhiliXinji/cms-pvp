@@ -225,6 +225,14 @@ class PvPExecutor(Executor):
     def mark_match_submissions(self, session, task_id):
         """Mark the submissions that will be used in the match."""
         task = Task.get_from_id(task_id, session)
+        cnt = 0
+        for p in task.contest.participations:
+            submission = get_last_submission(session, p, task)
+            # print(submission)
+            if submission:
+                cnt += 1
+        if cnt < 2:
+            return False
         for p in task.contest.participations:
             submission = get_last_submission(session, p, task)
             # print(submission)
@@ -256,7 +264,8 @@ class PvPExecutor(Executor):
                 logger.error("Mark next batch failed.")
                 return False
             if not self.mark_match_submissions(session, task.id):
-                logger.error("Could not mark submissions for task %s." % task.name)
+                logger.warning("Batch %d has less than 2 players. Exiting." % batch_id)
+                return False
             if not self.copy_submissions(session, task.id):
                 logger.error("Could not copy submissions for task %s." % task.name)
                 return False
@@ -280,10 +289,6 @@ class PvPExecutor(Executor):
                 else:
                     for tc in task.active_dataset.testcases.values():
                         competition_sys[tc.id].players[p.id] = 0.0
-
-            if len(participations) < 2:
-                logger.warning("Batch %d has less than 2 players. Exiting." % batch_id)
-                return False
 
             batch.start_evaluate()
 
