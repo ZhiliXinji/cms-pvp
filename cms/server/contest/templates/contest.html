@@ -75,15 +75,6 @@ function updatePosition() {
     sidebar.style.top = `calc(${header.offsetHeight}px + 1rem)`;
     sidebar.style.height = `calc(100vh - ${header.offsetHeight}px - 1rem)`;
 
-    // Navbar Dropdowns
-    document.querySelectorAll(".navbar .hovermenu > .dropdown-menu").forEach(menu => {
-        if (menu.getBoundingClientRect().right > window.innerWidth) {
-          menu.style.right = "0";
-        } else {
-          menu.style.right = "";
-        }
-    });
-
     // Navbar Brand
     document.getElementsByClassName("navbar-brand")[0].style.width = `${sidebar.offsetWidth}px`;
 }

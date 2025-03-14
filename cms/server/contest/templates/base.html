@@ -37,9 +37,21 @@ function setTheme(theme) {
     document.documentElement.setAttribute("data-bs-theme", getPreferredTheme());
 }
 
+function adjustDropdown() {
+    document.querySelectorAll(".navbar .hovermenu > .dropdown-menu").forEach(menu => {
+        if (menu.getBoundingClientRect().right > window.innerWidth) {
+          menu.style.right = "0";
+        } else {
+          menu.style.right = "";
+        }
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     setTheme();
+    adjustDropdown();
 });
+window.addEventListener("resize", adjustDropdown);
         </script>
 
         {% block js %}{% endblock js %}
