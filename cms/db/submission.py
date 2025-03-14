@@ -511,7 +511,7 @@ class SubmissionResult(Base):
             and self.dataset.task_type == "PvP"
             and self.submission.pvp_batch is None
         )
-    
+
     @staticmethod
     def filter_pending():
         """Return a filtering expression for pending submission results.
@@ -607,7 +607,7 @@ class SubmissionResult(Base):
         return (bool): True if scored, False otherwise.
 
         """
-        return all(getattr(self, k) is not None for k in [
+        return not self.discarded() and all(getattr(self, k) is not None for k in [
             "score", "score_details",
             "public_score", "public_score_details",
             "ranking_score_details"])
