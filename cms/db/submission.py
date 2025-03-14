@@ -519,6 +519,7 @@ class SubmissionResult(Base):
         """
         return(
             SubmissionResult.submission_discarded.is_(None)
+            & (SubmissionResult.compilation_outcome != "fail")
             & (SubmissionResult.dataset.has(Dataset.task_type == "PvP"))
             & SubmissionResult.submission.has(Submission.pvp_batch.is_(None))
             )

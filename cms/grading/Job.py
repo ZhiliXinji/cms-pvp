@@ -335,7 +335,10 @@ class CompilationJob(Job):
         # No need to check self.success because this method gets called
         # only if it is True.
 
-        sr.set_compilation_outcome(self.compilation_success)
+        if sr.submission_discarded is not None:
+            sr.set_compilation_outcome(False)
+        else:
+            sr.set_compilation_outcome(self.compilation_success)
         sr.compilation_text = self.text
         sr.compilation_stdout = self.plus.get('stdout')
         sr.compilation_stderr = self.plus.get('stderr')

@@ -36,7 +36,7 @@ from datetime import timedelta
 from functools import wraps
 
 import gevent.lock
-from sqlalchemy import func, not_
+from sqlalchemy import func, not_, or_, and_
 from sqlalchemy.exc import IntegrityError
 
 from cms import ServiceCoord, get_service_shards
@@ -381,7 +381,12 @@ class EvaluationService(TriggeredService):
                     submission_results = (
                         session.query(SubmissionResult)
                         .join(SubmissionResult.submission)
-                        .filter(SubmissionResult.filter_pending())
+                        .filter(
+                            or_(
+                                SubmissionResult.filter_pending(),
+                                SubmissionResult.compilation_outcome.is_(None)
+                            )
+                        )
                         .filter(
                             Submission.participation_id == submission.participation_id
                         )
