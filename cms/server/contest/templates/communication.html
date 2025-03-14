@@ -11,7 +11,7 @@
   <div class="card shadow border-0">
     <div class="card-body p-0">
   {% for msg in announcements|reverse %}
-      <div class="border-bottom p-4">
+    <div class="p-4{% if not loop.last %} border-bottom{% endif %}">
         <div class="d-flex justify-content-between align-items-start mb-3">
           <h4 class="mb-0 {% if msg.subject|length == 0 %}text-body-secondary fw-normal{% endif %}">
             {{ msg.subject|default(_("(no subject)"), true) }}
