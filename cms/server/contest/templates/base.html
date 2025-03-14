@@ -25,10 +25,15 @@ function getPreferredTheme() {
 
 function setTheme(theme) {
     const previousTheme = localStorage.getItem("theme") || "auto";
-    document.getElementById(`theme-${previousTheme}`).classList.remove("active");
+    const previousOption = document.getElementById(`theme-${previousTheme}`);
+    if (previousOption) previousOption.classList.remove("active");
+
     if (theme) localStorage.setItem("theme", theme === "auto" ? "" : theme);
+
     const currentTheme = localStorage.getItem("theme") || "auto";
-    document.getElementById(`theme-${currentTheme}`).classList.add("active");
+    const currentOption = document.getElementById(`theme-${currentTheme}`);
+    if (currentOption) currentOption.classList.add("active");
+
     document.documentElement.setAttribute("data-bs-theme", getPreferredTheme());
 }
 
