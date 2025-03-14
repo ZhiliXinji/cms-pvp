@@ -251,8 +251,8 @@ class EvaluationService(TriggeredService):
     """
 
     # TODO: these constants should be in a more general place.
-    MAX_COMPILATION_TRIES = 3
-    MAX_EVALUATION_TRIES = 3
+    MAX_COMPILATION_TRIES = 1
+    MAX_EVALUATION_TRIES = 1
     MAX_USER_TEST_COMPILATION_TRIES = 3
     MAX_USER_TEST_EVALUATION_TRIES = 3
 

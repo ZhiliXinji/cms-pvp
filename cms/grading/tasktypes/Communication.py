@@ -317,7 +317,7 @@ class Communication(TaskType):
         time_limit = job.time_limit * language.time_limit_multiplier
 
         manager_time_limit = max(
-            self.num_processes * (time_limit + 1.0),
+            (self.num_processes + 1) * (time_limit + 1.0),
             config.trusted_sandbox_max_time_s,
         )
         manager = evaluation_step_before_run(
