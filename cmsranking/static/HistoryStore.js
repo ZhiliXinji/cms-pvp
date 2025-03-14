@@ -93,15 +93,19 @@ var HistoryStore = new function () {
                 d[user][task] = score;
                 var contest_id = DataStore.tasks[task]['contest'];
 
-                if (score > max_score[user][task]) {
-                    max_score[user][task] = score;
-                    self.solve_time_c[user][contest_id] -= self.solve_time_t[user][task];
-                    self.solve_time_g[user] -= self.solve_time_t[user][task];
-                    self.solve_time_t[user][task] = time - DataStore.contests[contest_id]['begin'];
-                    self.solve_time_c[user][contest_id] += self.solve_time_t[user][task];
-                    self.solve_time_g[user] += self.solve_time_t[user][task];
 
+                if (task != 'plane') {
+                    if (score > max_score[user][task]) {
+                        max_score[user][task] = score;
+                        self.solve_time_c[user][contest_id] -= self.solve_time_t[user][task];
+                        self.solve_time_g[user] -= self.solve_time_t[user][task];
+                        self.solve_time_t[user][task] = time - DataStore.contests[contest_id]['begin'];
+                        self.solve_time_c[user][contest_id] += self.solve_time_t[user][task];
+                        self.solve_time_g[user] += self.solve_time_t[user][task];
+
+                    }
                 }
+
 
                 self.history_t.push([user, task, time, score]);
 
