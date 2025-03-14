@@ -1,6 +1,9 @@
 <header id="navigation_bar" class="navbar navbar-expand-lg sticky-top border-bottom shadow-sm">
     <nav class="container-xxl extra-large d-flex justify-content-between px-4">
-        <a class="navbar-brand text-center" href="{{ contest_url() }}">{{ contest.description }}</a>
+        <a class="navbar-brand text-center" href="{{ contest_url() }}">
+            <img src="{{ url('static', 'logo.png') }}" height="30" class="me-1">
+            {{ contest.description }}
+        </a>
         <div class="d-inline-flex align-items-center me-2">
 {% if participation is defined %}
             <span class="navbar-text me-2">
