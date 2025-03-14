@@ -394,6 +394,24 @@ class EvaluationService(TriggeredService):
                         .filter(Submission.timestamp < submission.timestamp)
                         .all()
                     )
+                    after_submission_results = (
+                        session.query(SubmissionResult)
+                        .join(SubmissionResult.submission)
+                        .filter(
+                            or_(
+                                SubmissionResult.filter_pending(),
+                                SubmissionResult.compilation_outcome.is_(None),
+                            )
+                        )
+                        .filter(
+                            Submission.participation_id == submission.participation_id
+                        )
+                        .filter(Submission.task_id == submission.task_id)
+                        .filter(Submission.timestamp > submission.timestamp)
+                        .all()
+                    )
+                    if len(after_submission_results) > 0:
+                        submission_result.set_discarded()
                     for sr in submission_results:
                         if not sr.discarded():
                             sr.set_discarded()
