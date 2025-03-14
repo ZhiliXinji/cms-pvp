@@ -381,8 +381,7 @@ class EvaluationService(TriggeredService):
                     submission_results = (
                         session.query(SubmissionResult)
                         .join(SubmissionResult.submission)
-                        .filter(SubmissionResult.filter_compiled())
-                        .filter(not_(SubmissionResult.filter_scored()))
+                        .filter(SubmissionResult.filter_pending())
                         .filter(
                             Submission.participation_id == submission.participation_id
                         )

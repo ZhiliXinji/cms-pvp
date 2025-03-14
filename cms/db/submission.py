@@ -511,6 +511,18 @@ class SubmissionResult(Base):
             and self.dataset.task_type == "PvP"
             and self.submission.pvp_batch is None
         )
+    
+    @staticmethod
+    def filter_pending():
+        """Return a filtering expression for pending submission results.
+
+        """
+        return(
+            SubmissionResult.submission_discarded.is_(None)
+            & (SubmissionResult.dataset.has(Dataset.task_type == "PvP"))
+            & SubmissionResult.submission.has(Submission.pvp_batch.is_(None))
+            )
+
     @staticmethod
     def filter_compiled():
         """Return a filtering expression for compiled submission results.
