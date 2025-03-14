@@ -159,7 +159,11 @@ def task_score(participation, task,
             score, score_details = None, None
         else:
             score, score_details = sr.score, sr.score_details
-        score_details_tokened.append((score, score_details, s.tokened()))
+        if not(sr is None or not sr.scored()):
+            score_details_tokened.append((score, score_details, s.tokened()))
+
+    if len(score_details_tokened) == 0:
+        return 0.0, False
 
     if task.score_mode == SCORE_MODE_MAX:
         score = _task_score_max(score_details_tokened)
