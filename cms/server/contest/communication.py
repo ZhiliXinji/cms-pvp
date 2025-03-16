@@ -139,10 +139,35 @@ def get_communications(sql_session, participation, timestamp, after=None):
     if after is not None:
         query = query.filter(Announcement.timestamp > after)
     for announcement in query.all():
-        res.append({"type": "announcement",
+        if announcement.server_notification:
+            res.append(
+                {
+                    "type": "server-notification",
                     "timestamp": make_timestamp(announcement.timestamp),
                     "subject": announcement.subject,
-                    "text": announcement.text})
+                    "text": announcement.text,
+                    "level": "info",
+                }
+            )
+        elif announcement.firstblood:
+            res.append(
+                {
+                    "type": "firstblood",
+                    "timestamp": make_timestamp(announcement.timestamp),
+                    "subject": announcement.subject,
+                    "text": announcement.text,
+                    "level": "info",
+                }
+            )
+        else:
+            res.append(
+                {
+                    "type": "announcement",
+                    "timestamp": make_timestamp(announcement.timestamp),
+                    "subject": announcement.subject,
+                    "text": announcement.text,
+                }
+            )
 
     # Private messages
     query = sql_session.query(Message) \

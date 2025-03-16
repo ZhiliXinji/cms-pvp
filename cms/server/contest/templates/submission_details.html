@@ -1,46 +1,62 @@
-
+<div class="container">
 
 {% if details is not none %}
-<div class="score_details">
-{{ details|safe }}
+<div class="score_details mb-3">
+    {{ details|safe }}
 </div>
 {% endif %}
 
 {% if sr is not none and sr.compiled() %}
-<h3>{% trans %}Compilation output{% endtrans %}</h3>{# TODO: trim long outputs and add facility to see raw #}
-<table class="table table-bordered" style="table-layout: fixed;">
+<div class="d-flex flex-column">
+<h3>{% trans %}Compilation output{% endtrans %}</h3>
+<table class="table table-bordered table-striped shadow" style="table-layout: fixed;">
     <tbody>
         <tr>
-            <th>{% trans %}Compilation outcome:{% endtrans %}</th>
-            <td>{{ sr.compilation_text|format_status_text }}</td>
-        </tr>
-        <tr>
-            <th>{% trans %}Compilation time:{% endtrans %}</th>
+            <th scope="row">{% trans %}Compilation outcome:{% endtrans %}</th>
             <td>
-{% if sr.compilation_time is none %}
-    {% trans %}N/A{% endtrans %}
-{% else %}
-    {{ sr.compilation_time|format_duration }}
-{% endif %}
+    {% if sr.get_status() == SubmissionResult.COMPILATION_FAILED %}
+                <i class="bi bi-x-lg text-danger"></i>
+    {% else %}
+                <i class="bi bi-check-lg text-success"></i>
+    {% endif %}
+                {{ sr.compilation_text|format_status_text }}
             </td>
         </tr>
-            <th>{% trans %}Memory used:{% endtrans %}</th>
+        <tr>
+            <th scope="row">{% trans %}Compilation time:{% endtrans %}</th>
             <td>
-{% if sr.compilation_memory is none %}
-    {% trans %}N/A{% endtrans %}
-{% else %}
-    {{ sr.compilation_memory|format_size }}
-{% endif %}
+                <i class="bi bi-stopwatch"></i>
+                {% if sr.compilation_time is none %}
+                    {% trans %}N/A{% endtrans %}
+                {% else %}
+                    {{ sr.compilation_time|format_duration }}
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th scope="row">{% trans %}Memory used:{% endtrans %}</th>
+            <td>
+                <i class="bi bi-memory"></i>
+                {% if sr.compilation_memory is none %}
+                    {% trans %}N/A{% endtrans %}
+                {% else %}
+                    {{ sr.compilation_memory|format_size }}
+                {% endif %}
             </td>
         </tr>
     </tbody>
 </table>
+
 {% if sr.compilation_stdout is not none %}
 <h4>{% trans %}Standard output{% endtrans %}</h4>
-<pre>{{ sr.compilation_stdout }}</pre>
+<pre class="bg-body-tertiary border rounded-3 p-3 shadow"><code>{{ sr.compilation_stdout }}</code></pre>
 {% endif %}
+
 {% if sr.compilation_stderr is not none %}
 <h4>{% trans %}Standard error{% endtrans %}</h4>
-<pre>{{ sr.compilation_stderr }}</pre>
+<pre class="bg-body-tertiary border rounded-3 p-3 shadow"><code>{{ sr.compilation_stderr }}</code></pre>
 {% endif %}
+</div>
 {% endif %}
+
+</div>

@@ -28,7 +28,7 @@
 import logging
 
 from cms import ServiceCoord, config
-from cms.db import SessionGen, Submission, Dataset, get_submission_results
+from cms.db import SessionGen, Submission, Dataset, Announcement, get_submission_results
 from cms.io import Executor, TriggeredService, rpc_method
 from cmscommon.datetime import make_datetime
 from .scoringoperations import ScoringOperation, get_operations
@@ -100,6 +100,29 @@ class ScoringExecutor(Executor):
                 submission_result.ranking_score_details = \
                 score_type.compute_score(submission_result)
 
+            if dataset.task_type != "PvP":
+                if (
+                    submission_result.score
+                    == submission_result.dataset.score_type_object.max_score
+                ):
+                    if submission_result.submission.task.solved is False:
+                        submission_result.submission.task.solved = True
+                        text = "选手 %s 第一个通过了 %s！" % (
+                            submission.participation.user.first_name
+                            + " "
+                            + submission.participation.user.last_name,
+                            submission.task.title,
+                        )
+                        ann = Announcement(
+                            make_datetime(),
+                            "%s 的第一滴血！" % submission.task.title,
+                            text,
+                            contest=submission.participation.contest,
+                            admin=None,
+                            firstblood=True,
+                        )
+                        session.add(ann)
+
             # Store it.
             session.commit()
 
@@ -138,7 +161,7 @@ class ScoringService(TriggeredService):
             must_be_present=ranking_enabled)
 
         self.add_executor(ScoringExecutor(self.proxy_service))
-        self.start_sweeper(347.0)
+        self.start_sweeper(177.0)
 
     def _missing_operations(self):
         """Return a generator of unscored submission results.

@@ -53,7 +53,7 @@ var Scoreboard = new function () {
     };
 
 
-    self.generate = function () {
+    self.generate_with_history = function () {
         self.tcols_el.html(self.make_cols());
         self.thead_el.html(self.make_head());
 
@@ -108,6 +108,9 @@ var Scoreboard = new function () {
             $(this).removeClass("score_up score_down");
         });
     };
+    self.generate = function () {
+        HistoryStore.request_update(self.generate_with_history);
+    }
 
 
     self.make_cols = function () {
@@ -302,10 +305,12 @@ var Scoreboard = new function () {
     self.compare_users = function (a, b) {
         var sort_key = self.sort_key;
         if ((a[sort_key] > b[sort_key]) || ((a[sort_key] == b[sort_key]) &&
-           ((a["global"] > b["global"]) || ((a["global"] == b["global"]) &&
-           ((a["l_name"] < b["l_name"]) || ((a["l_name"] == b["l_name"]) &&
-           ((a["f_name"] < b["f_name"]) || ((a["f_name"] == b["f_name"]) &&
-           (a["key"] <= b["key"]))))))))) {
+            ((HistoryStore.solve_time_g[a["key"]] < HistoryStore.solve_time_g[b["key"]])
+                || ((HistoryStore.solve_time_g[a["key"]] == HistoryStore.solve_time_g[b["key"]]) &&
+            ((a["global"] > b["global"]) || ((a["global"] == b["global"]) &&
+                ((a["l_name"] < b["l_name"]) || ((a["l_name"] == b["l_name"]) &&
+                    ((a["f_name"] < b["f_name"]) || ((a["f_name"] == b["f_name"]) &&
+                                (a["key"] <= b["key"]))))))))))) {
             return -1;
         } else {
             return +1;
@@ -368,6 +373,10 @@ var Scoreboard = new function () {
         for (var idx in list)
         {
             list[idx]["index"] = idx;
+            var rank_el = list[idx]["row"].querySelector(".rank");
+            if (rank_el) {
+                rank_el.textContent = (parseInt(list[idx]["index"]) + 1).toString();
+            }
             fragment.appendChild(list[idx]["row"]);
         }
 

@@ -293,15 +293,17 @@ class Batch(TaskType):
             sandbox.create_file_from_storage(filename, digest)
 
         # Actually performs the execution
+        time_limit = job.time_limit * language.time_limit_multiplier
         box_success, evaluation_success, stats = evaluation_step(
             sandbox,
             commands,
-            job.time_limit,
+            time_limit,
             job.memory_limit,
             writable_files=files_allowing_write,
             stdin_redirect=stdin_redirect,
             stdout_redirect=stdout_redirect,
-            multiprocess=job.multithreaded_sandbox)
+            multiprocess=job.multithreaded_sandbox,
+        )
 
         outcome = None
         text = None

@@ -74,13 +74,15 @@ def _filter_ansi_escape(string):
     return res
 
 
-def extract_outcome_and_text(sandbox):
+def extract_outcome_and_text(sandbox, PvP=False):
     """Extract the outcome and the text from the a standard manager output.
 
     sandbox (Sandbox): the sandbox whose last execution was a manager writing
         a standard manager output.
+    PvP (bool): if True, the manager is a PvP manager, and the outcome consists
+        of two floating point numbers separated by a space.
 
-    return (float, [str]): outcome and text.
+    return (float|String, [str]): outcome and text.
 
     raise (ValueError): if cannot decode the data.
     raise (FileNotFoundError): if any of the sandbox stdout or stderr file
@@ -102,11 +104,22 @@ def extract_outcome_and_text(sandbox):
             logger.error("Manager stderr (text) is not valid UTF-8. %r", error)
             raise ValueError("Cannot decode the text.")
 
-    try:
-        outcome = float(outcome)
-    except ValueError:
-        logger.error("Wrong outcome `%s' from manager.", outcome)
-        raise ValueError("Outcome is not a float.")
+    if PvP:
+        try:
+            tmp = outcome.split(" ")
+            if len(tmp) != 2:
+                raise ValueError("Outcome is not a pair of floats.")
+            for s in tmp:
+                float(s)
+        except ValueError:
+            logger.error("Wrong outcome `%s' from manager.", outcome)
+            raise ValueError("Outcome is not a float.")
+    else:
+        try:
+            outcome = float(outcome)
+        except ValueError:
+            logger.error("Wrong outcome `%s' from manager.", outcome)
+            raise ValueError("Outcome is not a float.")
 
     # If the text starts with translate, the manager is asking us to
     # use a stock message, that can be translated.
@@ -144,7 +157,7 @@ def trusted_step(sandbox, commands):
     sandbox.preserve_env = True
     sandbox.max_processes = config.trusted_sandbox_max_processes
     sandbox.timeout = config.trusted_sandbox_max_time_s
-    sandbox.wallclock_timeout = 2 * sandbox.timeout + 1
+    sandbox.wallclock_timeout = sandbox.timeout + 1
     sandbox.address_space = config.trusted_sandbox_max_memory_kib * 1024
 
     # Run the trusted commands.

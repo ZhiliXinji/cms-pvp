@@ -29,7 +29,7 @@
 """
 
 from cms import ServiceCoord, get_service_shards, get_service_address
-from cms.db import Contest, Participation, Submission
+from cms.db import Contest, Participation, Submission, Match, Task
 from cmscommon.datetime import make_datetime
 
 from .base import BaseHandler, SimpleContestHandler, SimpleHandler, \
@@ -152,6 +152,7 @@ class OverviewHandler(BaseHandler):
             self.contest = self.safe_get_item(Contest, contest_id)
 
         self.r_params = self.render_params()
+
         self.render("overview.html", **self.r_params)
 
 

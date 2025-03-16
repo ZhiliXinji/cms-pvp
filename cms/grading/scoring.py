@@ -159,7 +159,11 @@ def task_score(participation, task,
             score, score_details = None, None
         else:
             score, score_details = sr.score, sr.score_details
-        score_details_tokened.append((score, score_details, s.tokened()))
+        if not(sr is None or not sr.scored()):
+            score_details_tokened.append((score, score_details, s.tokened()))
+
+    if len(score_details_tokened) == 0:
+        return 0.0, False
 
     if task.score_mode == SCORE_MODE_MAX:
         score = _task_score_max(score_details_tokened)
@@ -180,6 +184,9 @@ def _task_score_max_tokened_last(score_details_tokened):
     This was used in IOI 2010-2012. The score of a participant on a task is
     the maximum score amongst all tokened submissions and the last submission
     (not yet computed scores count as 0.0).
+
+    NOTE: For PvP problems, they should use this mode and disable the usage of tokens, or it'll cause unfair results.
+    TODO: Disable other options for PvP problems.
 
     score_details_tokened ([(float|None, object|None, bool)]): a tuple for each
         submission of the user in the task, containing score, score details

@@ -1,0 +1,25 @@
+{% if score_type.max_public_score > 0 %}
+    {# Show the public score (alone, if everything is public or tokens are disabled, or together with the tokened score). #}
+<div
+    id="task_score_public"
+    class="card rounded-4 shadow flex-grow-0 task_score {{ get_score_class(public_score, score_type.max_public_score, task.score_precision) }}"
+>
+    <div class="card-body d-flex justify-content-between align-items-center gap-3">
+        <span class="card-text">
+    {% if score_type.max_public_score == score_type.max_score %}
+            {% trans %}Score:{% endtrans %}
+    {% else %}
+            {% trans %}Public score:{% endtrans %}
+    {% endif %}
+        </span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="card-text fw-bold fs-4 text-nowrap score">
+                {{ score_type.format_score(public_score, score_type.max_public_score, none, task.score_precision, translation=translation) }}
+            </span>
+    {% if is_score_partial %}
+            {% include "components/spinner.html" %}
+    {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}

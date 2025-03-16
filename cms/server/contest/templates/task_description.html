@@ -4,42 +4,33 @@
 
 {% block core %}
 
-
-<div class="span9 task_description">
-
-
-<div class="page-header">
-    <h1>{% trans name=task.title, short_name=task.name %}{{ name }} ({{ short_name }}) <small>description</small>{% endtrans %}</h1>
-</div>
-
-
-<h2>{% trans %}Statement{% endtrans %}</h2>
+<section>
+<h3>{% trans %}Statement{% endtrans %}</h3>
 
 {% if task.statements|length == 0 %}
-<div class="row statement no_statements">
-    <div class="span9">
+<div class="statement no_statements">
+    <div class="text-body-secondary fw-bold fst-italic fs-5 text-center">
         {% trans %}no statement available{% endtrans %}
     </div>
 </div>
 {% elif task.statements|length == 1 %}
-<div class="row statement one_statement">
-    <div class="span9">
+<div class="statement one_statement text-center">
     {% for lang_code in task.statements %}
-        <a href="{{ contest_url("tasks", task.name, "statements", lang_code) }}" class="btn btn-large btn-success">{% trans %}Download task statement{% endtrans %}</a>
+    <a href="{{ contest_url("tasks", task.name, "statements", lang_code) }}" class="btn btn-lg btn-success">{% trans %}Download task statement{% endtrans %}</a>
     {% endfor %}
-    </div>
 </div>
 {% else %}
-<div class="statement many_statements">
-    <div class="main_statements">
+<div class="row statement many_statements">
+    <div class="col-7 main_statements">
         <p>
             {% trans %}The statement for this task is available in multiple versions, in different languages.{% endtrans %}
             {%+ trans %}You can see (and download) all of them using the list on the right.{% endtrans %}
             {%+ trans %}Some suggested translations follow.{% endtrans %}
         </p>
+        <div class="d-flex flex-column align-items-center gap-2">
     {% for statement in task.statements.values()|sort(attribute="language") %}
         {% if statement.language in task.primary_statements %}
-        <a href="{{ contest_url("tasks", task.name, "statements", statement.language) }}" class="btn btn-large btn-success">
+        <a href="{{ contest_url("tasks", task.name, "statements", statement.language) }}" class="btn btn-success py-2 px-3">
             {% set language_name = statement.language|format_locale %}
             {% if statement.language != language_name %}
                 {% trans lang=language_name %}Statement in <b>{{ lang }}</b>{% endtrans %}
@@ -51,7 +42,7 @@
     {% endfor %}
     {% for statement in task.statements.values()|sort(attribute="language") %}
         {% if statement.language in participation.user.preferred_languages and statement.language not in task.primary_statements %}
-        <a href="{{ contest_url("tasks", task.name, "statements", statement.language) }}" class="btn btn-large">
+        <a href="{{ contest_url("tasks", task.name, "statements", statement.language) }}" class="btn btn-secondary py-2 px-3">
             {% set language_name = statement.language|format_locale %}
             {% if statement.language != language_name %}
                 {% trans lang=language_name %}Statement in <b>{{ lang }}</b>{% endtrans %}
@@ -61,37 +52,33 @@
         </a>
         {% endif %}
     {% endfor %}
+        </div>
     </div>
-    <div class="all_statements well">
-        <div>
-            <ul>
+    <div class="col-5 border-start all_statements">
+        <ul>
     {% for statement in task.statements.values()|sort(attribute="language") %}
-                <li>
-                    <a href="{{ contest_url("tasks", task.name, "statements", statement.language) }}">
+            <li>
+                <a href="{{ contest_url("tasks", task.name, "statements", statement.language) }}">
         {% set language_name = statement.language|format_locale %}
         {% if statement.language != language_name %}
             {% trans lang=language_name %}<b>{{ lang }}</b>{% endtrans %}
         {% else %}
             {% trans lang=language_name %}{{ lang }}{% endtrans %}
         {% endif %}
-                    </a>
-                </li>
+                </a>
+            </li>
     {% endfor %}
-            </ul>
-        </div>
+        </ul>
     </div>
 </div>
 {% endif %}
+</section>
 
+<section>
+<h3>{% trans %}Some details{% endtrans %}</h3>
 
-<h2>{% trans %}Some details{% endtrans %}</h2>
-
-<table class="table table-bordered table-nohover" style="table-layout: fixed">
-    <colgroup>
-        <col style="width: 20%"/>
-        <col style="width: 20%"/>
-        <col style="width: 60%"/>
-    </colgroup>
+<div class="table-responsive">
+<table class="table table-bordered align-middle">
     <tbody>
         <tr>
             <th>{% trans %}Type{% endtrans %}</th>
@@ -122,7 +109,7 @@
     <td>{{ (l|to_language).name }}</td>
     <td class="compilation_command_cell">
 {% for cmd in c %}
-        <code class="compilation_command">{{ cmd|join(" ") }}</code>
+        <pre class="bg-body-tertiary border rounded-1 px-2 py-1 mb-0"><code class="compilation_command text-wrap">{{ cmd|join(" ") }}</code></pre>
 {% endfor %}
     </td>
     {% endfor %}
@@ -160,13 +147,14 @@
 {% endif %}
     </tbody>
 </table>
-
-
+</div>
+</section>
 
 {% if task.attachments|length > 0 %}
-    <h2>{% trans %}Attachments{% endtrans %}</h2>
-    <div id="attachments">
-        <ul>
+<section class="overflow-x-auto">
+    <h3>{% trans %}Attachments{% endtrans %}</h3>
+    <div>
+        <ul class="list-unstyled row">
     {% for filename, attachment in task.attachments|dictsort(by="key") %}
         {% set mime_type = get_mimetype_for_file_name(filename) %}
         {% if mime_type is not none %}
@@ -177,26 +165,28 @@
             {% set type_icon = none %}
         {% endif %}
         {% set file_size = handler.application.service.file_cacher.get_size(attachment.digest) %}
-            <li>
-                <a href="{{ contest_url("tasks", task.name, "attachments", filename) }}" class="btn">
+            <li class="col-4">
+                <a href="{{ contest_url("tasks", task.name, "attachments", filename) }}" class="btn btn-attachment h-100 hstack gap-3">
             {% if type_icon is not none %}
                     <img src="{{ url("static", "img", "mimetypes", "%s.png"|format(type_icon)) }}" alt="{{ mime_type }}" />
             {% else %}
                     <img src="{{ url("static", "img", "mimetypes", "unknown.png") }}" alt="{% trans %}unknown{% endtrans %}" />
             {% endif %}
-                    <span class="first_line">
-                        <span class="name">{{ filename }}</span>
-                        <span class="size">{{ file_size|format_size }}</span>
-                    </span>
+                    <div class="vstack text-truncate">
+                        <div class="first_line d-flex justify-content-between gap-2">
+                            <span class="name fw-bold text-truncate">{{ filename }}</span>
+                            <span class="size fst-italic text-nowrap">{{ file_size|format_size }}</span>
+                        </div>
             {% if type_name is not none %}
-                    <span class="type">{{ translation.translate_mimetype(type_name) }}</span>
+                        <span class="type text-start text-truncate">{{ translation.translate_mimetype(type_name) }}</span>
             {% endif %}
+                    </div>
                 </a>
             </li>
     {% endfor %}
         </ul>
     </div>
+</section>
 {% endif %}
 
-</div>
 {% endblock core %}

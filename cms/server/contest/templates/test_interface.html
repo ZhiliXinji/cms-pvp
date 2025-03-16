@@ -63,11 +63,6 @@ $(document).ready(function () {
 
 <div class="span9 test_interface">
 
-<div class="page-header">
-    <h1>{% trans %}Testing{% endtrans %}</h1>
-</div>
-
-
 <ul class="nav nav-tabs">
 {% for task in contest.tasks %}
     {% set task_type = get_task_type(dataset=task.active_dataset) %}

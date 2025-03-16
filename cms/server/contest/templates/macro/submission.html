@@ -26,7 +26,8 @@ official (boolean): whether to display only the official (true) or unofficial
 {% set gettext = translation.gettext %}
 {% set score_type = get_score_type(dataset=task.active_dataset) %}
 {% set show_date = not submissions|map(attribute="timestamp")|all("today") %}
-<table class="submission_list table table-bordered table-striped">
+<div class="table-responsive">
+<table class="table table-bordered table-hover text-center align-middle submission_list">
 {% set num_cols = 2 %}
     <colgroup>
 {% if show_date %}
@@ -82,7 +83,9 @@ official (boolean): whether to display only the official (true) or unofficial
     {% set num_displayed = (submissions|selectattr("official")|list|length if official else submissions|rejectattr("official")|list|length) > 0 %}
     {% if num_displayed == 0 %}
         <tr>
-            <td colspan="{{ num_cols }}" class="no_submissions">{% trans %}no submissions{% endtrans %}</td>
+            <td colspan="{{ num_cols }}" class="fst-italic fs-4 text-body-secondary">
+                {% trans %}no submissions{% endtrans %}
+            </td>
         </tr>
     {% else %}
         {% for s in submissions|sort(attribute="timestamp")|reverse %}
@@ -106,6 +109,7 @@ official (boolean): whether to display only the official (true) or unofficial
     {% endif %}
     </tbody>
 </table>
+</div>
 {%- endmacro %}
 
 {% macro row(url, contest_url, translation, xsrf_form_html,
@@ -140,46 +144,53 @@ submissions_download_allowed (bool): whether to allow users to download
 {% set status = sr.get_status() if sr is defined else SubmissionResult.COMPILING  %}
 <tr data-submission="{{ s_num }}" data-status="{{ status }}">
 {% if show_date %}
-    <td class="datetime">{{ s.timestamp|format_datetime }}</td>
+    <td class="datetime font-monospace">{{ s.timestamp|format_datetime }}</td>
 {% else %}
-    <td class="time">{{ s.timestamp|format_time }}</td>
+    <td class="time font-monospace">{{ s.timestamp|format_time }}</td>
 {% endif %}
     <td class="status">
+        <div class="d-flex justify-content-between align-items-center gap-3">
 {% if status == SubmissionResult.COMPILING %}
-        {% trans %}Compiling...{% endtrans %}
-      <img class="details" src="{{ url("static", "loading.gif") }}" />
+            {% trans %}Compiling...{% endtrans %}
+            {% include "components/spinner.html" %}
 {% elif status == SubmissionResult.COMPILATION_FAILED %}
-        {% trans %}Compilation failed{% endtrans %}
-        <a class="details">{% trans %}details{% endtrans %}</a>
+            {% trans %}Compilation failed{% endtrans %}
+            {% include "components/submission_detail_button.html" %}
+{% elif status == SubmissionResult.DISCARDED %}
+            {% trans %}Discarded{% endtrans %}
+{% elif status == SubmissionResult.PENDING %}
+            {% trans %}Pending...{% endtrans %}
+            {% include "components/spinner.html" %}
 {% elif status == SubmissionResult.EVALUATING %}
-        {% trans %}Evaluating...{% endtrans %}
-      <img class="details" src="{{ url("static", "loading.gif") }}" />
+            {% trans %}Evaluating...{% endtrans %}
+            {% include "components/spinner.html" %}
 {% elif status == SubmissionResult.SCORING %}
-        {% trans %}Scoring...{% endtrans %}
-      <img class="details" src="{{ url("static", "loading.gif") }}" />
+            {% trans %}Scoring...{% endtrans %}
+            {% include "components/spinner.html" %}
 {% elif status == SubmissionResult.SCORED %}
-        {% trans %}Evaluated{% endtrans %}
-        <a class="details">{% trans %}details{% endtrans %}</a>
+            {% trans %}Evaluated{% endtrans %}
+            {% include "components/submission_detail_button.html" %}
 {% endif %}
+        </div>
     </td>
 {% if score_type is defined and score_type.max_public_score > 0 %}
     {% if status == SubmissionResult.SCORED %}
-    <td class="public_score {{ get_score_class(sr.public_score, score_type.max_public_score, task.score_precision) }}">
+    <td class="fw-bold text-nowrap public_score {{ get_score_class(sr.public_score, score_type.max_public_score, task.score_precision) }}">
         {{ score_type.format_score(sr.public_score, score_type.max_public_score, sr.public_score_details, task.score_precision, translation=translation) }}
     </td>
     {% else %}
-    <td class="public_score undefined">
+    <td class="fw-bold text-nowrap public_score undefined text-body-secondary">
         {% trans %}N/A{% endtrans %}
     </td>
     {% endif %}
 {% endif %}
 {% if score_type is defined and score_type.max_public_score < score_type.max_score %}
     {% if status == SubmissionResult.SCORED and (s.token is not none or actual_phase == 3) %}
-    <td class="total_score {{ get_score_class(sr.score, score_type.max_score, task.score_precision) }}">
+    <td class="fw-bold text-nowrap total_score {{ get_score_class(sr.score, score_type.max_score, task.score_precision) }}">
         {{ score_type.format_score(sr.score, score_type.max_score, sr.score_details, task.score_precision, translation=translation) }}
     </td>
     {% else %}
-    <td class="total_score undefined">
+    <td class="fw-bold text-nowrap text-body-secondary">
         {% trans %}N/A{% endtrans %}
     </td>
     {% endif %}
@@ -190,23 +201,22 @@ submissions_download_allowed (bool): whether to allow users to download
         {# there isn't another file with that name. This allows to securily reverse the replacement and should work great in #}
         {# the common case. Yet, it still allows the marginal case of both 'foo.%l' and 'foo.c' in the submission format. #}
         {% if s.files|length == 0 %}
-        <a class="btn disabled">
+        <button class="btn btn-outline-dark disabled w-100">
             {% trans %}None{% endtrans %}
-        </a>
+        </button>
         {% elif s.files|length == 1 %}
             {% set filename = next(iter(s.files.keys())) %}
             {% if s.language is not none %}
                 {% set filename = filename|replace(".%l", (s.language|to_language).source_extension) %}
             {% endif %}
-        <a class="btn" href="{{ contest_url("tasks", task.name, "submissions", s_num, "files", filename) }}">
+        <a class="btn btn-secondary w-100" href="{{ contest_url("tasks", task.name, "submissions", s_num, "files", filename) }}">
             {% trans %}Download{% endtrans %}
         </a>
         {% else %}
-        <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown">
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle w-100" data-bs-toggle="dropdown">
                 {% trans %}Download{% endtrans %}
-                <span class="caret"></span>
-            </a>
+            </button>
             <ul class="dropdown-menu">
             {% for filename in s.files %}
                 {% if s.language is not none %}
@@ -215,8 +225,11 @@ submissions_download_allowed (bool): whether to allow users to download
                         {% set filename = temp_filename %}
                     {% endif %}
                 {% endif %}
-                <li>
-                    <a href="{{ contest_url("tasks", task.name, "submissions", s_num, "files", filename) }}">
+                <li class="mx-1">
+                    <a
+                        class="dropdown-item rounded"
+                        href="{{ contest_url("tasks", task.name, "submissions", s_num, "files", filename) }}"
+                    >
                         {{ filename }}
                     </a>
                 </li>
@@ -229,22 +242,22 @@ submissions_download_allowed (bool): whether to allow users to download
 {% if can_use_tokens and actual_phase == 0 %}
     <td class="token">
         {% if s.token is not none %}
-        <a class="btn disabled">{% trans %}Played{% endtrans %}</a>
+        <a class="btn btn-outline-dark disabled w-100">{% trans %}Played{% endtrans %}</a>
         {% else %}
             {% if can_play_token_now %}
               {# Can play a token right now: show the button. #}
         <form action="{{ contest_url("tasks", task.name, "submissions", s_num, "token") }}" method="POST">
             {{ xsrf_form_html|safe }}
-            <button type="submit" class="btn btn-warning">{% trans %}Play!{% endtrans %}</button>
+            <button type="submit" class="btn btn-warning w-100">{% trans %}Play!{% endtrans %}</button>
         </form>
             {% elif can_play_token or tokens_info[1] is not none %}
               {# Can play a token, but only after a min_interval expires,
                  or after the next token generation: ask to wait. #}
-        <a class="btn btn-warning disabled">{% trans %}Wait...{% endtrans %}</a>
+        <a class="btn btn-warning disabled w-100">{% trans %}Wait...{% endtrans %}</a>
             {% else %}
               {# No tokens to play at this moment, nor more will be
                  generated: tell the user there are no tokens. #}
-        <a class="btn disabled">{% trans %}No tokens{% endtrans %}</a>
+        <a class="btn btn-outline-dark disabled w-100">{% trans %}No tokens{% endtrans %}</a>
             {% endif %}
         {% endif %}
     </td>

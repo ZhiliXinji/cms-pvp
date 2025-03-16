@@ -30,16 +30,27 @@ import logging
 
 from sqlalchemy import case, literal
 
-from cms.db import Dataset, Evaluation, Submission, SubmissionResult, \
-    Task, Testcase, UserTest, UserTestResult
+from cms.db import (
+    Dataset,
+    Evaluation,
+    Submission,
+    SubmissionResult,
+    Task,
+    Testcase,
+    UserTest,
+    UserTestResult,
+    Matching,
+    Match,
+    MatchResult,
+)
 from cms.io import PriorityQueue, QueueItem
 
 
 logger = logging.getLogger(__name__)
 
 
-MAX_COMPILATION_TRIES = 3
-MAX_EVALUATION_TRIES = 3
+MAX_COMPILATION_TRIES = 1
+MAX_EVALUATION_TRIES = 1
 MAX_USER_TEST_COMPILATION_TRIES = 3
 MAX_USER_TEST_EVALUATION_TRIES = 3
 
@@ -58,6 +69,12 @@ FILTER_SUBMISSION_RESULTS_TO_EVALUATE = (
     (SubmissionResult.evaluation_tries < MAX_EVALUATION_TRIES)
 )
 
+FILTER_MATCHING_DATASETS_TO_JUDGE = (Dataset.id == Task.active_dataset_id) | (
+    Dataset.autojudge.is_(True)
+)
+FILTER_MATCHING_RESULTS_TO_EVALUATE = (~MatchResult.filter_evaluated()) & (
+    MatchResult.evaluation_tries < MAX_EVALUATION_TRIES
+)
 
 FILTER_USER_TEST_DATASETS_TO_JUDGE = (
     (Dataset.id == Task.active_dataset_id) |
@@ -147,6 +164,57 @@ def user_test_to_evaluate(user_test_result):
         not r.evaluated() and \
         r.evaluation_tries < MAX_USER_TEST_EVALUATION_TRIES
 
+def match_to_evaluate(match_result):
+    """Return whether ES is interested in evaluating the match.
+
+    match_result (MatchResult): a match result.
+
+    return (bool): True if ES wants to evaluate the match.
+
+    """
+
+    return (
+        match_result is not None
+        and not match_result.evaluated()
+        and match_result.evaluation_tries < MAX_EVALUATION_TRIES
+    )
+
+
+def match_get_operations(match_result, match, dataset):
+    """Generate all operations originating from a match for a given
+    dataset.
+
+    match_result (MatchResult|None): a match result.
+    match (Match): the match for match_result.
+    dataset (Dataset): the dataset for match_result.
+
+    yield (ESOperation, int, datetime): an iterator providing triplets
+        consisting of a ESOperation for a certain operation to
+        perform, its priority and its timestamp.
+
+    """
+
+    if not dataset.active:
+        priority = PriorityQueue.PRIORITY_EXTRA_LOW
+    elif match_result is None:
+        priority = PriorityQueue.PRIORITY_HIGH
+    else:
+        priority = PriorityQueue.PRIORITY_MEDIUM
+
+    evaluated_testcase_ids = set(
+        matching.testcase_id for matching in match_result.matchings
+    )
+    for testcase_codename in dataset.testcases.keys():
+        testcase_id = dataset.testcases[testcase_codename].id
+        # if this match specify a testcase, only run this testcase.
+        if match.testcase_id is not None and match.testcase_id != testcase_id:
+            continue
+        if testcase_id not in evaluated_testcase_ids:
+            yield (
+                ESOperation(ESOperation.MATCH, match.id, dataset.id, testcase_codename),
+                priority,
+                match.timestamp,
+            )
 
 def submission_get_operations(submission_result, submission, dataset):
     """Generate all operations originating from a submission for a given
@@ -290,8 +358,8 @@ def get_submissions_operations(session, contest_id=None):
     contest_id (int|None): the contest for which we want the operations.
         If none, get operations for any contest.
 
-    return ([ESOperation, float, int]): a list of operation, timestamp
-        and priority.
+    return ([ESOperation, int, float]): a list of operation, priority
+        and timestamp.
 
     """
     operations = []
@@ -389,6 +457,84 @@ def get_submissions_operations(session, contest_id=None):
 
     return operations
 
+def get_match_operations(session, contest_id=None):
+    """Return all the operations to do for matchings in the contest.
+
+    session (Session): the database session to use.
+    contest_id (int|None): the contest for which we want the operations.
+        If none, get operations for any contest.
+
+    return ([ESOperation, float, int]): a list of operation, timestamp
+        and priority.
+
+    """
+
+    operations = []
+
+    if contest_id is None:
+        contest_filter = literal(True)
+    else:
+        contest_filter = Task.contest_id == contest_id
+
+    # Retrieve all the match operations for a dataset to
+    # judge. Again we need to pick all tuples (matching, dataset,
+    # testcase) such that there is no evaluation for them, and to do
+    # so we take the cartesian product with the testcases and later
+    # ensure that there is no evaluation associated.
+    to_evaluate = (
+        session.query(MatchResult)
+        .join(MatchResult.dataset)
+        .join(MatchResult.match)
+        .join(Match.task)
+        .join(Dataset.testcases)
+        .outerjoin(
+            Matching,
+            (Matching.match_id == Match.id)
+            & (Matching.dataset_id == Dataset.id)
+            & (Matching.testcase_id == Testcase.id),
+        )
+        .filter(
+            contest_filter
+            & (FILTER_MATCHING_DATASETS_TO_JUDGE)
+            & (FILTER_MATCHING_RESULTS_TO_EVALUATE)
+            & (Matching.id.is_(None))
+            & (Match.testcase_id.is_(None) | (Match.testcase_id == Testcase.id))
+        )
+        .with_entities(
+            Match.id,
+            Dataset.id,
+            case(
+                [
+                    (
+                        Dataset.id != Task.active_dataset_id,
+                        literal(PriorityQueue.PRIORITY_EXTRA_LOW),
+                    ),
+                    (
+                        MatchResult.evaluation_tries == 0,
+                        literal(PriorityQueue.PRIORITY_MEDIUM),
+                    ),
+                ],
+                else_=literal(PriorityQueue.PRIORITY_LOW),
+            ),
+            Match.timestamp,
+            Testcase.codename,
+        )
+        .all()
+    )
+
+    logger.debug("Finding missing matchings...%s", repr(to_evaluate))
+
+    for data in to_evaluate:
+        match_id, dataset_id, priority, timestamp, codename = data
+        operations.append(
+            (
+                ESOperation(ESOperation.MATCH, match_id, dataset_id, codename),
+                priority,
+                timestamp,
+            )
+        )
+
+    return operations
 
 def get_user_tests_operations(session, contest_id=None):
     """Return all the operations to do for user tests in the contest.
@@ -490,11 +636,13 @@ def get_user_tests_operations(session, contest_id=None):
 
 
 class ESOperation(QueueItem):
-
+    # TODO: implement function around user tests for matching
     COMPILATION = "compile"
     EVALUATION = "evaluate"
+    MATCH = "match"
     USER_TEST_COMPILATION = "compile_test"
     USER_TEST_EVALUATION = "evaluate_test"
+    USER_TEST_MATCH = "match_test"
 
     # Testcase codename is only needed for EVALUATION type of operation
     def __init__(self, type_, object_id, dataset_id, testcase_codename=None):
@@ -549,6 +697,14 @@ class ESOperation(QueueItem):
         """
         return self.type_ == ESOperation.COMPILATION or \
             self.type_ == ESOperation.EVALUATION
+
+    def for_match(self):
+        """Return if the operation is for a match.
+
+        return (bool): True if this operation is for a match.
+
+        """
+        return self.type_ == ESOperation.MATCH
 
     def to_dict(self):
         return {

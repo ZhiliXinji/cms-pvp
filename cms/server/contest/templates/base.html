@@ -6,12 +6,53 @@
 
         <title>{% block title %}{% endblock title %}</title>
 
-        <link rel="shortcut icon" href="{{ url("static", "favicon.ico") }}" />
+        <link rel="shortcut icon" href="{{ url("static", "logo.png") }}" />
         <link rel="stylesheet" href="{{ url("static", "css", "bootstrap.min.css") }}">
+        <link rel="stylesheet" href="{{ url("static", "css", "bootstrap-icons.min.css") }}">
         <link rel="stylesheet" href="{{ url("static", "cws_style.css") }}">
 
+        <script src="{{ url("static", "jq", "jquery-3.6.0.min.js") }}"></script>
+        {# For compatibility with Bootstrap 2.x #}
+        <script src="{{ url("static", "jq", "jquery-migrate-3.3.2.min.js") }}"></script>
         <script src="{{ url("static", "js", "bootstrap.bundle.min.js") }}"></script>
         <script src="{{ url("static", "cws_utils.js") }}"></script>
+
+        <script>
+function getPreferredTheme() {
+    return localStorage.getItem("theme") ||
+        (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+}
+
+function setTheme(theme) {
+    const previousTheme = localStorage.getItem("theme") || "auto";
+    const previousOption = document.getElementById(`theme-${previousTheme}`);
+    if (previousOption) previousOption.classList.remove("active");
+
+    if (theme) localStorage.setItem("theme", theme === "auto" ? "" : theme);
+
+    const currentTheme = localStorage.getItem("theme") || "auto";
+    const currentOption = document.getElementById(`theme-${currentTheme}`);
+    if (currentOption) currentOption.classList.add("active");
+
+    document.documentElement.setAttribute("data-bs-theme", getPreferredTheme());
+}
+
+function adjustDropdown() {
+    document.querySelectorAll(".navbar .hovermenu > .dropdown-menu").forEach(menu => {
+        if (menu.getBoundingClientRect().right > window.innerWidth) {
+          menu.style.right = "0";
+        } else {
+          menu.style.right = "";
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    setTheme();
+    adjustDropdown();
+});
+window.addEventListener("resize", adjustDropdown);
+        </script>
 
         {% block js %}{% endblock js %}
     </head>

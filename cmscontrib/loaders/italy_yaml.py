@@ -717,10 +717,19 @@ class YamlLoader(ContestLoader, TaskLoader, UserLoader, TeamLoader):
                                            "are 'std_io' and 'fifo_io'. "
                                            "Ignored.")
                             io_type = None
-                    logger.info("Task type Communication")
-                    args["task_type"] = "Communication"
-                    args["task_type_parameters"] = \
-                        [num_processes, "alone", io_type or "std_io"]
+                    # If pvp is set, then the task type is pvp
+                    if conf.get("pvp", False):
+                        logger.info("Task type PvP")
+                        args["task_type"] = "PvP"
+                        args["task_type_parameters"] = ["alone", io_type or "std_io"]
+                    else:  # otherwise, the task type is Communication
+                        logger.info("Task type Communication")
+                        args["task_type"] = "Communication"
+                        args["task_type_parameters"] = [
+                            num_processes,
+                            "alone",
+                            io_type or "std_io",
+                        ]
                     digest = self.file_cacher.put_file_from_path(
                         path,
                         "Manager for task %s" % task.name)
@@ -734,14 +743,24 @@ class YamlLoader(ContestLoader, TaskLoader, UserLoader, TeamLoader):
                                 stub_name,
                                 "Stub for task %s and language %s" % (
                                     task.name, lang.name))
-                            args["task_type_parameters"] = \
-                                [num_processes, "stub", io_type or "fifo_io"]
+                            args["task_type_parameters"] = (
+                                ["stub", io_type or "fifo_io"]
+                                if conf.get("pvp", False)
+                                else [num_processes, "stub", io_type or "fifo_io"]
+                            )
                             args["managers"] += [
                                 Manager(
                                     "stub%s" % lang.source_extension, digest)]
                         else:
                             logger.warning("Stub for language %s not "
                                            "found.", lang.name)
+                    if args["task_type"] == "PvP":
+                        args["task_type_parameters"] += (
+                            conf.get("auto_eval", "disabled"),
+                            conf.get("interval", 1800),
+                            conf.get("rounds", 5),
+                            conf.get("notification_time", 300),
+                        )
                     for other_filename in os.listdir(os.path.join(self.path,
                                                                   "sol")):
                         if any(other_filename.endswith(header)

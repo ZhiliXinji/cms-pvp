@@ -543,43 +543,43 @@ msgid "The contest hasn't started yet."
 msgstr "Kì thi chưa bắt đầu."
 
 #, python-format
-msgid "The contest will start at %(start_time)s and will end at %(stop_time)s."
-msgstr "Kì thi sẽ bắt đầu tại thời điểm %(start_time)s và kết thúc tại thời điểm %(stop_time)s."
+msgid "The contest will start at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "Kì thi sẽ bắt đầu tại thời điểm <strong>%(start_time)s</strong> và kết thúc tại thời điểm <strong>%(stop_time)s</strong>."
 
 msgid "The contest is currently running."
 msgstr "Kì thi đang diễn ra."
 
 #, python-format
-msgid "The contest started at %(start_time)s and will end at %(stop_time)s."
-msgstr "Kì thi đã bắt đầu tại thời điểm %(start_time)s và sẽ kết thúc tại thời điểm %(stop_time)s."
+msgid "The contest started at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "Kì thi đã bắt đầu tại thời điểm <strong>%(start_time)s</strong> và sẽ kết thúc tại thời điểm <strong>%(stop_time)s</strong>."
 
 msgid "The contest has already ended."
 msgstr "Kì thi đã kết thúc."
 
 #, python-format
-msgid "The contest started at %(start_time)s and ended at %(stop_time)s."
-msgstr "Kì thi đã bắt đầu tại thời điểm %(start_time)s và kết thúc tại thời điểm %(stop_time)s."
+msgid "The contest started at <strong>%(start_time)s</strong> and ended at <strong>%(stop_time)s</strong>."
+msgstr "Kì thi đã bắt đầu tại thời điểm <strong>%(start_time)s</strong> và kết thúc tại thời điểm <strong>%(stop_time)s</strong>."
 
 msgid "The analysis mode hasn't started yet."
 msgstr "Nộp bài không chính thức chưa bắt đầu."
 
 #, python-format
-msgid "The analysis mode will start at %(start_time)s and will end at %(stop_time)s."
-msgstr "Nộp bài không chính thức sẽ đầu tại thời điểm %(start_time)s và kết thúc tại thời điểm %(stop_time)s."
+msgid "The analysis mode will start at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "Nộp bài không chính thức sẽ đầu tại thời điểm <strong>%(start_time)s</strong> và kết thúc tại thời điểm <strong>%(stop_time)s</strong>."
 
 msgid "The analysis mode is currently running."
 msgstr "Nộp bài không chính thức đang diễn ra."
 
 #, python-format
-msgid "The analysis mode started at %(start_time)s and will end at %(stop_time)s."
-msgstr "Nộp bài không chính thức đã bắt đầu tại thời điểm %(start_time)s và sẽ kết thúc tại thời điểm %(stop_time)s."
+msgid "The analysis mode started at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "Nộp bài không chính thức đã bắt đầu tại thời điểm <strong>%(start_time)s</strong> và sẽ kết thúc tại thời điểm <strong>%(stop_time)s</strong>."
 
 msgid "The analysis mode has already ended."
 msgstr "Nộp bài không chính thức đã kết thúc."
 
 #, python-format
-msgid "The analysis mode started at %(start_time)s and ended at %(stop_time)s."
-msgstr "Nộp bài không chính thức đã bắt đầu tại thời điểm %(start_time)s và kết thúc tại thời điểm %(stop_time)s."
+msgid "The analysis mode started at <strong>%(start_time)s</strong> and ended at <strong>%(stop_time)s</strong>."
+msgstr "Nộp bài không chính thức đã bắt đầu tại thời điểm <strong>%(start_time)s</strong> và kết thúc tại thời điểm <strong>%(stop_time)s</strong>."
 
 msgid "You have an infinite number of tokens."
 msgstr "Bạn có vô số token."
@@ -628,15 +628,15 @@ msgid "By clicking on the button below you can start your time frame."
 msgstr "Nhấn vào nút dưới đây để bắt đầu tính giờ làm bài."
 
 #, python-format
-msgid "You started your time frame at %(start_time)s."
-msgstr "Bạn đã bắt đầu làm bài từ %(start_time)s."
+msgid "You started your time frame at <strong>%(start_time)s</strong>."
+msgstr "Bạn đã bắt đầu làm bài từ <strong>%(start_time)s</strong>."
 
 msgid "You can submit solutions until the end of the time frame or until the end of the contest, whatever comes first."
 msgstr "Bạn có thể nộp bài cho tới khi hết khoảng thời gian quy định, hoặc khi kì thi kết thúc, tuỳ theo sự kiện nào xảy ra trước."
 
 #, python-format
-msgid "You started your time frame at %(start_time)s and you already finished it."
-msgstr "Bạn đã bắt đầu làm bài từ thời điểm %(start_time)s và đã hết thời gian quy định."
+msgid "You started your time frame at <strong>%(start_time)s</strong> and you already finished it."
+msgstr "Bạn đã bắt đầu làm bài từ thời điểm <strong>%(start_time)s</strong> và đã hết thời gian quy định."
 
 msgid "There's nothing you can do now."
 msgstr "Hiện giờ bạn không thể làm gì được nữa."

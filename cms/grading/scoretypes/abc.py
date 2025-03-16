@@ -54,6 +54,7 @@ class ScoreType(metaclass=ABCMeta):
     """
 
     TEMPLATE = ""
+    BS5_TEMPLATE = ""
 
     def __init__(self, parameters, public_testcases):
         """Initializer.
@@ -77,6 +78,7 @@ class ScoreType(metaclass=ABCMeta):
                 "values for the score type parameters): %s." % e)
 
         self.template = GLOBAL_ENVIRONMENT.from_string(self.TEMPLATE)
+        self.bs5_template = GLOBAL_ENVIRONMENT.from_string(self.BS5_TEMPLATE)
 
     @staticmethod
     def format_score(score, max_score, unused_score_details,
@@ -106,7 +108,8 @@ class ScoreType(metaclass=ABCMeta):
 
     def get_html_details(self, score_details,
                          feedback_level=FEEDBACK_LEVEL_RESTRICTED,
-                         translation=DEFAULT_TRANSLATION):
+                         translation=DEFAULT_TRANSLATION,
+                         use_bootstrap5=False):
         """Return an HTML string representing the score details of a
         submission.
 
@@ -114,28 +117,37 @@ class ScoreType(metaclass=ABCMeta):
             itself in the database; can be public or private.
         feedback_level (str): the level of details to show to users.
         translation (Translation): the translation to use.
+        use_bootstrap5 (bool): whether to use Bootstrap 5 to render.
 
         return (string): an HTML string representing score_details.
 
         """
         _ = translation.gettext
         n_ = translation.ngettext
+        unavailable_msg = _("Score details temporarily unavailable.")
+        if not use_bootstrap5:
+            unavailable_html = unavailable_msg
+        else:
+            unavailable_html = f'<h3 class="text-danger fw-bold">{unavailable_msg}</h3>'
         if score_details is None:
             logger.error("Found a null score details string. "
                          "Try invalidating scores.")
-            return _("Score details temporarily unavailable.")
+            return unavailable_html
         else:
             # FIXME we should provide to the template all the variables
             # of a typical CWS context as it's entitled to expect them.
             try:
-                return self.template.render(details=score_details,
-                                            feedback_level=feedback_level,
-                                            translation=translation,
-                                            gettext=_, ngettext=n_)
+                template = (
+                    self.bs5_template if use_bootstrap5 else self.template
+                )
+                return template.render(details=score_details,
+                                       feedback_level=feedback_level,
+                                       translation=translation,
+                                       gettext=_, ngettext=n_)
             except Exception:
                 logger.error("Found an invalid score details string. "
                              "Try invalidating scores.")
-                return _("Score details temporarily unavailable.")
+                return unavailable_html
 
     @abstractmethod
     def max_scores(self):
@@ -307,6 +319,135 @@ class ScoreTypeGroup(ScoreTypeAlone):
     </div>
 </div>
 {% endfor %}"""
+
+    BS5_TEMPLATE = """\
+<div class="accordion">
+{% for st in details %}
+    {% if "score_fraction" in st %}
+        {% if st["score_fraction"] >= 1.0 %}
+    <div class="accordion-item correct">
+        {% elif st["score_fraction"] <= 0.0 %}
+    <div class="accordion-item notcorrect">
+        {% else %}
+    <div class="accordion-item partiallycorrect">
+        {% endif %}
+    {% else %}
+    <div class="accordion-item undefined">
+    {% endif %}
+        <h2 class="accordion-header">
+            <button
+                class="accordion-button collapsed fs-5"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#subtask{{ loop.index }}"
+            >
+                <div class="rounded text-center text-nowrap fw-bold me-4 py-1 score">
+    {% if "score_fraction" in st and "max_score" in st %}
+        {% set score = st["score_fraction"] * st["max_score"] %}
+                    {{ score|round(2)|format_decimal }}
+                    / {{ st["max_score"]|format_decimal }}
+    {% else %}
+                    {% trans %}N/A{% endtrans %}
+    {% endif %}
+                </div>
+                <span class="title">
+                    {% trans index=st["idx"] %}Subtask {{ index }}{% endtrans %}
+                </span>
+            </button>
+        </h2>
+        <div
+            id="subtask{{ loop.index }}"
+            class="accordion-collapse collapse"
+        >
+            <div class="accordion-body">
+                <table class="table table-bordered table-hover table-striped testcase-list">
+                    <thead>
+                        <tr>
+                            <th class="idx">
+                                {% trans %}#{% endtrans %}
+                            </th>
+                            <th class="outcome">
+                                {% trans %}Outcome{% endtrans %}
+                            </th>
+                            <th class="details">
+                                {% trans %}Details{% endtrans %}
+                            </th>
+    {% if feedback_level == FEEDBACK_LEVEL_FULL %}
+                            <th class="execution-time">
+                                {% trans %}Execution time{% endtrans %}
+                            </th>
+                            <th class="memory-used">
+                                {% trans %}Memory used{% endtrans %}
+                            </th>
+    {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+    {% for tc in st["testcases"] %}
+        {% if "outcome" in tc
+               and (feedback_level == FEEDBACK_LEVEL_FULL
+                    or tc["show_in_restricted_feedback"]) %}
+            {% if tc["outcome"] == "Correct" %}
+                        <tr class="correct">
+            {% elif tc["outcome"] == "Not correct" %}
+                        <tr class="notcorrect">
+            {% else %}
+                        <tr class="partiallycorrect">
+            {% endif %}
+                            <td class="idx">{{ loop.index }}</td>
+                            <td class="outcome text-nowrap fw-bold">
+            {% if tc["outcome"] == "Correct" %}
+                                <i class="bi bi-check-lg me-1"></i>
+            {% elif tc["outcome"] == "Not correct" %}
+                                <i class="bi bi-x-lg me-1"></i>
+            {% else %}
+                                <i class="bi bi-x-lg me-1"></i>
+            {% endif %}
+                                {{ _(tc["outcome"]) }}
+                            </td>
+                            <td class="details">
+                                {{ tc["text"]|format_status_text }}
+                            </td>
+            {% if feedback_level == FEEDBACK_LEVEL_FULL %}
+                            <td class="execution-time text-truncate">
+                {% if "time" in tc and tc["time"] is not none %}
+                                {{ tc["time"]|format_duration }}
+                {% else %}
+                                {% trans %}N/A{% endtrans %}
+                {% endif %}
+                            </td>
+                            <td class="memory-used text-truncate">
+                {% if "memory" in tc and tc["memory"] is not none %}
+                                {{ tc["memory"]|format_size }}
+                {% else %}
+                                {% trans %}N/A{% endtrans %}
+                {% endif %}
+                            </td>
+            {% endif %}
+                        </tr>
+        {% else %}
+                        <tr class="undefined">
+                            <td class="idx">{{ loop.index }}</td>
+                            <td
+                                class="fw-bold text-body-secondary"
+            {% if feedback_level == FEEDBACK_LEVEL_FULL %}
+                                colspan="4"
+            {% else %}
+                                colspan="2"
+            {% endif %}
+                            >
+                                {% trans %}N/A{% endtrans %}
+                            </td>
+                        </tr>
+        {% endif %}
+    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div>"""
 
     def retrieve_target_testcases(self):
         """Return the list of the target testcases for each subtask.

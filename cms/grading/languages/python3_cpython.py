@@ -51,6 +51,11 @@ class Python3CPython(CompiledLanguage):
         # Defined in PEP 441 (https://www.python.org/dev/peps/pep-0441/).
         return ".pyz"
 
+    @property
+    def time_limit_multiplier(self):
+        """See Language.time_limit_multiplier."""
+        return 2.0
+
     def get_compilation_commands(self,
                                  source_filenames, executable_filename,
                                  for_evaluation=True):

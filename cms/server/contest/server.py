@@ -49,6 +49,7 @@ from cmscommon.binary import hex_to_bin
 from .handlers import HANDLERS
 from .handlers.base import ContestListHandler
 from .handlers.main import MainHandler
+from .handlers.notfound import NotFoundHandler
 
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,7 @@ class ContestWebServer(WebService):
             "is_proxy_used": config.is_proxy_used,
             "num_proxies_used": config.num_proxies_used,
             "xsrf_cookies": True,
+            "default_handler_class": NotFoundHandler,
         }
 
         try:

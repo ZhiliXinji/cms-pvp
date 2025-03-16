@@ -2,25 +2,44 @@
 {% block title %}
   {% trans status_code=status_code %}Error {{ status_code }}{% endtrans %}
 {% endblock title %}
+
 {% block body %}
+<div class="container min-vh-100 d-flex align-items-center py-5">
+  <div class="row justify-content-center w-100">
+    <div class="col-12 col-md-10 col-lg-8 col-xl-6">
+      <div class="card shadow-lg border-danger" aria-live="assertive">
+        <div class="card-body p-5 text-center">
 
-<div class="span9">
+          <div class="mb-4 text-danger">
+            <i class="bi bi-exclamation-octagon-fill display-2"></i>
+          </div>
 
-<div class="page-header">
-    <h1>{% trans status_code=status_code %}Error {{ status_code }}{% endtrans %}</h1>
-</div>
+          <h1 class="card-title display-4 fw-bold text-danger mb-4">
+            {% trans %}Error {{ status_code }}{% endtrans %}
+          </h1>
 
-<p>
-{% trans %}An error occured while the server was handling your request.{% endtrans %}
-</p>
+          <div class="card-text">
+            <p class="lead text-body-secondary mb-4">
+              {% trans %}An error occured while the server was handling your request.{% endtrans %}
+            </p>
 
-<p>
-{% trans %}Note that attempts to tamper with Contest Management System (such as probing the server with customized URLs) may be considered cheating and may lead to disqualification.{% endtrans %}
-</p>
+            <hr class="border-danger opacity-25 w-50 mx-auto my-4">
 
-<p>
-{% trans %}If you encountered this error during normal usage, please notify the contest administrators.{% endtrans %}
-</p>
+            <p class="small text-body-secondary mb-4">
+              {% trans %}Note that attempts to tamper with Contest Management System (such as probing the server with customized URLs) may be considered cheating and may lead to disqualification.{% endtrans %}
+            </p>
 
+            <div class="mt-4">
+              <a href="/" class="btn btn-outline-danger btn-lg px-5">
+                <i class="bi bi-house-door me-2"></i>
+                {% trans %}Return to Home Page{% endtrans %}
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock body %}

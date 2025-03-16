@@ -47,9 +47,7 @@ class Submission(Base):
     __tablename__ = 'submissions'
 
     # Auto increment primary key.
-    id = Column(
-        Integer,
-        primary_key=True)
+    id = Column(Integer, primary_key=True)
 
     # User and Contest, thus Participation (id and object) that did the
     # submission.
@@ -97,6 +95,13 @@ class Submission(Base):
         default=True,
     )
 
+    # Batch number for PvP matches.
+    pvp_batch = Column(
+        Integer,
+        nullable=True,
+        default=None,
+    )
+
     @property
     def short_comment(self):
         """The first line of the comment."""
@@ -124,6 +129,15 @@ class Submission(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         back_populates="submission")
+
+    @property
+    def dataset(self):
+        """Return the dataset of the task of this submission.
+
+        return (Dataset): the dataset of the task of this submission.
+
+        """
+        return self.task.active_dataset
 
     def get_result(self, dataset=None):
         """Return the result associated to a dataset.
@@ -263,6 +277,10 @@ class SubmissionResult(Base):
     SCORING = 4
     SCORED = 5
 
+    # PvP exclusive.
+    PENDING = 6
+    DISCARDED = 7
+
     __tablename__ = 'submission_results'
     __table_args__ = (
         UniqueConstraint('submission_id', 'dataset_id'),
@@ -343,6 +361,14 @@ class SubmissionResult(Base):
         Enum("ok", name="evaluation_outcome"),
         nullable=True)
 
+    # Represent if a submission is discarded. Used in PvP only.
+    # If a submission is discarded, it's recommended to set
+    # `compilation_status` on "failed", to make the submission
+    # not evaluated anymore.
+    submission_discarded = Column(
+        Enum("discarded", name="submission_discarded"), nullable=True
+    )
+
     # Number of failures during evaluation.
     evaluation_tries = Column(
         Integer,
@@ -399,10 +425,14 @@ class SubmissionResult(Base):
         """Return the status of this object.
 
         """
-        if not self.compiled():
+        if self.discarded():
+            return SubmissionResult.DISCARDED
+        elif not self.compiled():
             return SubmissionResult.COMPILING
         elif self.compilation_failed():
             return SubmissionResult.COMPILATION_FAILED
+        elif self.pending():
+            return SubmissionResult.PENDING
         elif not self.evaluated():
             return SubmissionResult.EVALUATING
         elif not self.scored():
@@ -460,6 +490,40 @@ class SubmissionResult(Base):
         """
         return self.compilation_outcome is not None
 
+    def discarded(self):
+        """Return whether the submission result has been discarded.
+        About the reason to judge compilation_failed(), see comments
+        on submission_discarded.
+
+        return (bool): True if discarded, False otherwise.
+
+        """
+        return self.compilation_failed() and self.submission_discarded == "discarded"
+
+    def pending(self):
+        """Return whether the submission result is pending.
+
+        return (bool): True if pending, False otherwise.
+
+        """
+        return (
+            not self.discarded()
+            and self.dataset.task_type == "PvP"
+            and self.submission.pvp_batch is None
+        )
+
+    @staticmethod
+    def filter_pending():
+        """Return a filtering expression for pending submission results.
+
+        """
+        return(
+            SubmissionResult.submission_discarded.is_(None)
+            & (SubmissionResult.compilation_outcome != "fail")
+            & (SubmissionResult.dataset.has(Dataset.task_type == "PvP"))
+            & SubmissionResult.submission.has(Submission.pvp_batch.is_(None))
+            )
+
     @staticmethod
     def filter_compiled():
         """Return a filtering expression for compiled submission results.
@@ -483,7 +547,10 @@ class SubmissionResult(Base):
         compilation.
 
         """
-        return SubmissionResult.compilation_outcome == "fail"
+        return (
+            SubmissionResult.compilation_outcome == "fail"
+            and SubmissionResult.submission_discarded.is_(None)
+        )
 
     def compilation_succeeded(self):
         """Return whether the submission compiled.
@@ -516,7 +583,14 @@ class SubmissionResult(Base):
         """Return a filtering lambda for evaluated submission results.
 
         """
-        return SubmissionResult.evaluation_outcome.isnot(None)
+        return SubmissionResult.submission_discarded.is_(
+            None
+        ) & SubmissionResult.evaluation_outcome.isnot(None)
+
+    @staticmethod
+    def filter_discarded():
+        """Return a filtering lambda for discarded submission results."""
+        return SubmissionResult.submission_discarded.isnot(None)
 
     def needs_scoring(self):
         """Return whether the submission result needs to be scored.
@@ -533,7 +607,7 @@ class SubmissionResult(Base):
         return (bool): True if scored, False otherwise.
 
         """
-        return all(getattr(self, k) is not None for k in [
+        return not self.discarded() and all(getattr(self, k) is not None for k in [
             "score", "score_details",
             "public_score", "public_score_details",
             "ranking_score_details"])
@@ -543,11 +617,14 @@ class SubmissionResult(Base):
         """Return a filtering lambda for scored submission results.
 
         """
-        return ((SubmissionResult.score.isnot(None))
-                & (SubmissionResult.score_details.isnot(None))
-                & (SubmissionResult.public_score.isnot(None))
-                & (SubmissionResult.public_score_details.isnot(None))
-                & (SubmissionResult.ranking_score_details.isnot(None)))
+        return (
+            SubmissionResult.submission_discarded.is_(None)
+            & (SubmissionResult.score.isnot(None))
+            & (SubmissionResult.score_details.isnot(None))
+            & (SubmissionResult.public_score.isnot(None))
+            & (SubmissionResult.public_score_details.isnot(None))
+            & (SubmissionResult.ranking_score_details.isnot(None))
+        )
 
     def invalidate_compilation(self):
         """Blank all compilation and evaluation outcomes, and the score.
@@ -583,6 +660,17 @@ class SubmissionResult(Base):
         self.public_score_details = None
         self.ranking_score_details = None
 
+    def set_discarded(self):
+        """Set submission status to compilation failed, and no further
+        action will be applied to it.
+
+        """
+        self.set_compilation_outcome(False)
+        self.invalidate_score()
+        self.score = 0.0
+        self.score_details = "Discarded because of newer submission."
+        self.submission_discarded = "discarded"
+
     def set_compilation_outcome(self, success):
         """Set the compilation outcome based on the success.
 
@@ -596,6 +684,7 @@ class SubmissionResult(Base):
 
         """
         self.evaluation_outcome = "ok"
+
 
 
 class Executable(Base):

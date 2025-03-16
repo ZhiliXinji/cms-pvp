@@ -558,43 +558,43 @@ msgid "The contest hasn't started yet."
 msgstr "Võistlus ei ole veel alanud."
 
 #, python-format
-msgid "The contest will start at %(start_time)s and will end at %(stop_time)s."
-msgstr "Võistluse algab %(start_time)s ja lõppeb %(stop_time)s."
+msgid "The contest will start at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "Võistluse algab <strong>%(start_time)s</strong> ja lõppeb <strong>%(stop_time)s</strong>."
 
 msgid "The contest is currently running."
 msgstr "Võistlus käib."
 
 #, python-format
-msgid "The contest started at %(start_time)s and will end at %(stop_time)s."
-msgstr "Võistlus algas %(start_time)s ja lõppeb %(stop_time)s."
+msgid "The contest started at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "Võistlus algas <strong>%(start_time)s</strong> ja lõppeb <strong>%(stop_time)s</strong>."
 
 msgid "The contest has already ended."
 msgstr "Võistlus on juba lõppenud."
 
 #, python-format
-msgid "The contest started at %(start_time)s and ended at %(stop_time)s."
-msgstr "Võistlus algas %(start_time)s ja lõppes %(stop_time)s."
+msgid "The contest started at <strong>%(start_time)s</strong> and ended at <strong>%(stop_time)s</strong>."
+msgstr "Võistlus algas <strong>%(start_time)s</strong> ja lõppes <strong>%(stop_time)s</strong>."
 
 msgid "The analysis mode hasn't started yet."
 msgstr "Järellahendamine ei ole veel alanud."
 
 #, python-format
-msgid "The analysis mode will start at %(start_time)s and will end at %(stop_time)s."
-msgstr "Järellahendamine algab %(start_time)s ja lõppeb %(stop_time)s."
+msgid "The analysis mode will start at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "Järellahendamine algab <strong>%(start_time)s</strong> ja lõppeb <strong>%(stop_time)s</strong>."
 
 msgid "The analysis mode is currently running."
 msgstr "Järellahendamine käib."
 
 #, python-format
-msgid "The analysis mode started at %(start_time)s and will end at %(stop_time)s."
-msgstr "Järellahendamine algas %(start_time)s ja lõppeb %(stop_time)s."
+msgid "The analysis mode started at <strong>%(start_time)s</strong> and will end at <strong>%(stop_time)s</strong>."
+msgstr "Järellahendamine algas <strong>%(start_time)s</strong> ja lõppeb <strong>%(stop_time)s</strong>."
 
 msgid "The analysis mode has already ended."
 msgstr "Järellahendamine on juba lõppenud."
 
 #, python-format
-msgid "The analysis mode started at %(start_time)s and ended at %(stop_time)s."
-msgstr "Järellahendamine algas %(start_time)s ja lõppes %(stop_time)s."
+msgid "The analysis mode started at <strong>%(start_time)s</strong> and ended at <strong>%(stop_time)s</strong>."
+msgstr "Järellahendamine algas <strong>%(start_time)s</strong> ja lõppes <strong>%(stop_time)s</strong>."
 
 msgid "You have an infinite number of tokens."
 msgstr "Teil on lõpmatu arv pileteid."
@@ -643,15 +643,15 @@ msgid "By clicking on the button below you can start your time frame."
 msgstr "Lahendusperioodi alustamiseks vajutage allolevat nuppu."
 
 #, python-format
-msgid "You started your time frame at %(start_time)s."
-msgstr "Te alustasite oma lahendusperioodi %(start_time)s."
+msgid "You started your time frame at <strong>%(start_time)s</strong>."
+msgstr "Te alustasite oma lahendusperioodi <strong>%(start_time)s</strong>."
 
 msgid "You can submit solutions until the end of the time frame or until the end of the contest, whatever comes first."
 msgstr "Saate esitada lahendusi oma lahendusperioodi lõpuni, või kuni võistluse lõpuni, kumbiganes esimesena kätte jõuab."
 
 #, python-format
-msgid "You started your time frame at %(start_time)s and you already finished it."
-msgstr "Teie lahendusperiood algas %(start_time)s ning on juba lõppenud."
+msgid "You started your time frame at <strong>%(start_time)s</strong> and you already finished it."
+msgstr "Teie lahendusperiood algas <strong>%(start_time)s</strong> ning on juba lõppenud."
 
 msgid "There's nothing you can do now."
 msgstr "Te ei saa nüüd enam midagi teha."

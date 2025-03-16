@@ -30,7 +30,7 @@ import logging
 from sqlalchemy import func, not_, literal_column
 
 from cms import config, ServiceCoord, get_service_shards
-from cms.db import SessionGen, Dataset, Submission, SubmissionResult, Task
+from cms.db import SessionGen, Dataset, Submission, SubmissionResult, Task, Match, Batch
 from cms.io import WebService, rpc_method
 from cms.service import EvaluationService
 from cmscommon.binary import hex_to_bin
@@ -77,6 +77,7 @@ class AdminWebServer(WebService):
             ServiceCoord("EvaluationService", 0))
         self.scoring_service = self.connect_to(
             ServiceCoord("ScoringService", 0))
+        self.pvp_service = self.connect_to(ServiceCoord("PvPService", 0))
 
         ranking_enabled = len(config.rankings) > 0
         self.proxy_service = self.connect_to(
@@ -148,14 +149,19 @@ class AdminWebServer(WebService):
                 not_(SubmissionResult.filter_evaluated()))
 
             queries = {}
+            queries["discarded"] = base_query.filter(
+                SubmissionResult.filter_discarded()
+            )
             queries['compiling'] = not_compiled.filter(
                 SubmissionResult.compilation_tries <
                 EvaluationService.EvaluationService.MAX_COMPILATION_TRIES)
             queries['max_compilations'] = not_compiled.filter(
                 SubmissionResult.compilation_tries >=
                 EvaluationService.EvaluationService.MAX_COMPILATION_TRIES)
-            queries['compilation_fail'] = base_query.filter(
-                SubmissionResult.filter_compilation_failed())
+            queries["compilation_fail"] = base_query.filter(
+                SubmissionResult.filter_compilation_failed(),
+                not_(SubmissionResult.filter_discarded()),
+            )
             queries['evaluating'] = not_evaluated.filter(
                 SubmissionResult.evaluation_tries <
                 EvaluationService.EvaluationService.MAX_EVALUATION_TRIES)
@@ -183,10 +189,53 @@ class AdminWebServer(WebService):
                 queries[key] = query.add_columns(key_column)
 
             keys = list(queries.keys())
+
             results = queries[keys[0]].union_all(
                 *(queries[key] for key in keys[1:])).all()
 
         stats = {key: value for value, key in results}
-        stats['compiling'] += 2 * stats['total'] - sum(stats.values())
+        logger.info("Queries: %s", repr(stats))
+        stats["compiling"] += 2 * stats["total"] - sum(stats.values())
 
         return stats
+
+    @staticmethod
+    @rpc_method
+    def pvp_status(contest_id):
+        """Returns a dictionary of statistics about pvp tasks.
+
+        contest_id (int|None): counts are restricted to this contest,
+            or None for no restrictions.
+
+        return (dict): statistics on the submissions.
+
+        """
+        pvp_tasks = {}  # list of PvP tasks
+        with SessionGen() as session:
+            if contest_id is not None:
+                tasks = session.query(Task).filter(Task.contest_id == contest_id)
+                for task in tasks:
+                    if task.active_dataset.task_type == "PvP":
+                        task_detail = {}
+                        batch = (
+                            session.query(Batch)
+                            .filter(Batch.task_pvp_batch == task.pvp_batch)
+                            .filter(Batch.task_id == task.id)
+                            .first()
+                        )
+                        round_count = 0
+                        evaluated_round_count = 0
+                        if batch:
+                            round_count = batch.rounds
+                            evaluated_round_count = batch.rounds_id
+
+                        task_detail["task_id"] = task.id
+                        task_detail["task_title"] = task.title
+                        task_detail["pvp_batch"] = task.pvp_batch
+                        # count of matches in the task
+                        task_detail["match_count"] = round_count
+                        # count of matches that have been evaluated
+                        task_detail["evaluated_match_count"] = evaluated_round_count
+
+                        pvp_tasks[task.id] = task_detail
+        return pvp_tasks

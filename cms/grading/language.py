@@ -103,6 +103,11 @@ class Language(metaclass=ABCMeta):
         """Executable file extension for this language (including the dot)."""
         return ""
 
+    @property
+    def time_limit_multiplier(self):
+        """Multiplier to apply to time limits for this language."""
+        return 1
+
     @abstractmethod
     def get_compilation_commands(self,
                                  source_filenames, executable_filename,

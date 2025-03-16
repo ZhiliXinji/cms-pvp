@@ -33,7 +33,7 @@ import gevent.lock
 from cms.db import SessionGen, Contest, enumerate_files
 from cms.db.filecacher import FileCacher, TombstoneError
 from cms.grading import JobException
-from cms.grading.Job import CompilationJob, EvaluationJob, JobGroup
+from cms.grading.Job import CompilationJob, EvaluationJob, MatchJob, JobGroup
 from cms.grading.tasktypes import get_task_type
 from cms.io import Service, rpc_method
 
@@ -47,10 +47,12 @@ class Worker(Service):
     operations are in the TaskType classes, while the sandbox is in
     the Sandbox module.
 
+    In PvP mode, the worker is also responsible for performing a matching.
     """
 
     JOB_TYPE_COMPILATION = "compile"
     JOB_TYPE_EVALUATION = "evaluate"
+    JOB_TYPE_MATCH = "match"
 
     def __init__(self, shard, fake_worker_time=None):
         Service.__init__(self, shard)
@@ -173,6 +175,8 @@ class Worker(Service):
             job.compilation_success = True
         elif isinstance(job, EvaluationJob):
             job.outcome = "1.0"
+        elif isinstance(job, MatchJob):
+            job.outcome = "1.0 1.0"
 
     def _finalize(self, start_time):
         end_time = time.time()
